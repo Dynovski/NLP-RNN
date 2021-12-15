@@ -164,7 +164,7 @@ class DataPreProcessor:
         """
         encoder = LabelEncoder()
         encoder.fit(self.data[attribute])
-        self.data[attribute] = encoder.transform(self.data[attribute])
+        self.data[f'encoded_{attribute}'] = encoder.transform(self.data[attribute])
 
     def get_data(self) -> pd.DataFrame:
         """
