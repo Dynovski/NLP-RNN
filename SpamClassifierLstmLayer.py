@@ -13,7 +13,7 @@ class SpamClassifierLstmLayer(nn.Module):
 
         self.embedding = nn.Embedding(vocab_size, embedding_size)
         self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
-        self.embedding.weight.requires_grad = False
+        #self.embedding.weight.requires_grad = False
 
         self.lstm = nn.LSTM(embedding_size, hidden_dim, n_layers, dropout=drop_prob, batch_first=True)
 

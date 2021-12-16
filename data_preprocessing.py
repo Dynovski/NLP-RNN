@@ -50,7 +50,7 @@ class DataPreProcessor:
         self.data: pd.DataFrame = pd.read_csv(path, encoding=encoding)
 
         # Remove empty columns
-        self.data.dropna(axis=1, how='all', inplace=True)
+        self.data.dropna(axis=1, how='any', inplace=True)
         # Remove empty words
         self.data.dropna(how='any', inplace=True)
 
@@ -112,25 +112,6 @@ class DataPreProcessor:
 
         return distribution
 
-    @staticmethod
-    def _clean_text(cls, text: str) -> str:
-        """
-        Make text lowercase, remove text in square brackets, remove links, remove punctuation
-        and remove words containing numbers.
-
-        :return: str
-            Preprocessed text
-        """
-        text = text.lower()
-        text = re.sub('\[.*?\]', '', text)
-        text = re.sub('https?://\S+|www\.\S+', '', text)
-        text = re.sub('<.*?>+', '', text)
-        text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
-        text = re.sub('\n', '', text)
-        text = re.sub('\w*\d\w*', '', text)
-
-        return text
-
     def _remove_stopwords(self, text: str) -> str:
         text = ' '.join(word for word in text.split(' ') if word not in self.stopwords)
         return text
@@ -149,7 +130,7 @@ class DataPreProcessor:
         """
         assert attribute in self.data.columns
 
-        self.data['clean_data'] = self.data[attribute].apply(DataPreProcessor._clean_text)
+        self.data['clean_data'] = self.data[attribute].apply(_clean_text)
 
         # Remove stopwords
         self.data['clean_data'] = self.data['clean_data'].apply(self._remove_stopwords)
@@ -206,8 +187,8 @@ class DataPreProcessor:
         return self.data['clean_data']
 
     @property
-    def encoded_labels(self):
-        return self.data['encoded_labels']
+    def encoded_labels(self) -> np.ndarray:
+        return self.data['encoded_labels'].to_numpy(dtype=np.float32)
 
     def tokenize(self) -> np.ndarray:
         """
@@ -264,3 +245,21 @@ class DataPreProcessor:
 
         return embedding_matrix
 
+
+def _clean_text(text: str) -> str:
+    """
+    Make text lowercase, remove text in square brackets, remove links, remove punctuation
+    and remove words containing numbers.
+
+    :return: str
+        Preprocessed text
+    """
+    text = text.lower()
+    text = re.sub('\[.*?\]', '', text)
+    text = re.sub('https?://\S+|www\.\S+', '', text)
+    text = re.sub('<.*?>+', '', text)
+    text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
+    text = re.sub('\n', '', text)
+    text = re.sub('\w*\d\w*', '', text)
+
+    return text
