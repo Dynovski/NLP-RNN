@@ -345,7 +345,7 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,macos,linux,windows,pycharm+all,visualstudiocode,vim
 
-data/glove.6B.100d.txt
+data/glove*
 state
 logs
 results
