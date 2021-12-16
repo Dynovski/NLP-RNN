@@ -230,7 +230,7 @@ class DataPreProcessor:
                 elements = line.split()
                 word = elements[0]
                 vector = np.asarray(elements[1:], dtype='float32')
-                word_to_vector_d[word] = vector
+                word_to_vector_d[self.stemmer.stem(word)] = vector
 
         embedding_matrix = np.zeros((vocab_len, embedding_dim))
 
