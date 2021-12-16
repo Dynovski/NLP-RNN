@@ -8,7 +8,7 @@ from numpy import ndarray
 
 def create_sms_datasets(path: str, train_data_ratio: float) -> Tuple[TensorDataset, TensorDataset, TensorDataset]:
     """
-    Create train, validation and test datasets for SMS Collection data
+    Create train, validation and test dataprocessing for SMS Collection data
 
     :param path: str
         Path to file containing data

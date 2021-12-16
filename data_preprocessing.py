@@ -1,10 +1,9 @@
 import pandas as pd
-import re
-import string
 import numpy as np
 
 from typing import List, Tuple, Dict
 from plotly import graph_objs as go
+from tqdm import tqdm
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 from nltk.tokenize import word_tokenize
@@ -13,6 +12,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 
 from exceptions import IncorrectNumberOfAttributesException
+from preprocessing.utils import clean_sms_data
 
 
 class DataPreProcessor:
@@ -130,7 +130,7 @@ class DataPreProcessor:
         """
         assert attribute in self.data.columns
 
-        self.data['clean_data'] = self.data[attribute].apply(_clean_text)
+        self.data['clean_data'] = self.data[attribute].apply(clean_sms_data)
 
         # Remove stopwords
         self.data['clean_data'] = self.data['clean_data'].apply(self._remove_stopwords)
@@ -225,8 +225,8 @@ class DataPreProcessor:
         """
         word_to_vector_d: Dict[str, np.ndarray] = dict()
 
-        with open(path) as f:
-            for line in f.readlines():
+        with open(path, encoding='utf8') as f:
+            for line in tqdm(f, "Reading GloVe"):
                 elements = line.split()
                 word = elements[0]
                 vector = np.asarray(elements[1:], dtype='float32')

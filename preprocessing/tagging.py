@@ -1,5 +1,4 @@
 from typing import List
-
 from nltk.data import load
 from nltk import pos_tag
 
