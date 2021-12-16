@@ -49,8 +49,10 @@ class DataPreProcessor:
     ):
         self.data: pd.DataFrame = pd.read_csv(path, encoding=encoding)
 
-        # Remove incomplete data
-        self.data.dropna(how="any", inplace=True)
+        # Remove empty columns
+        self.data.dropna(axis=1, how='all', inplace=True)
+        # Remove empty words
+        self.data.dropna(how='any', inplace=True)
 
         # Check if number of attributes is correct
         if self.data.shape[1] != len(attribute_names):
