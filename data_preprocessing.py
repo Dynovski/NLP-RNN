@@ -244,22 +244,3 @@ class DataPreProcessor:
         print(f'Glove has {count} of {len(self.tokenizer.word_index) + 1} words in vocabulary')
 
         return embedding_matrix
-
-
-def _clean_text(text: str) -> str:
-    """
-    Make text lowercase, remove text in square brackets, remove links, remove punctuation
-    and remove words containing numbers.
-
-    :return: str
-        Preprocessed text
-    """
-    text = text.lower()
-    text = re.sub('\[.*?\]', '', text)
-    text = re.sub('https?://\S+|www\.\S+', '', text)
-    text = re.sub('<.*?>+', '', text)
-    text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
-    text = re.sub('\n', '', text)
-    text = re.sub('\w*\d\w*', '', text)
-
-    return text

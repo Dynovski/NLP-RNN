@@ -21,11 +21,11 @@ def train():
     preprocessor.preprocess('message', 'class')
     preprocessor.tokenize()
     vocab_size = len(preprocessor.tokenizer.word_index) + 1
-    embedding_matrix = preprocessor.create_glove_embedding_matrix('data/glove.6B.100d.txt', 100, vocab_size)
+    embedding_matrix = preprocessor.create_glove_embedding_matrix('data/glove.42B.300d.txt', config.EMBEDDING_DIM, vocab_size)
 
     output_size = 1
 
-    model = LSTMNetwork(vocab_size, output_size, 100, embedding_matrix, config.HIDDEN_DIM, config.NUM_LAYERS)
+    model = LSTMNetwork(vocab_size, output_size, config.EMBEDDING_DIM, embedding_matrix, config.HIDDEN_SIZE, config.NUM_RECURRENT_LAYERS)
     model.to(config.DEVICE)
 
     print(model)
