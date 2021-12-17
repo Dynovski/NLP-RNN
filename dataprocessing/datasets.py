@@ -33,7 +33,7 @@ def create_sms_datasets(path: str, train_data_ratio: float) -> Tuple[TensorDatas
 
     split_idx = int(0.5 * len(test_data))
     val_data, test_data = test_data[:split_idx], test_data[split_idx:]
-    val_labels, test_labels = test_labels[:split_idx], test_labels[:split_idx]
+    val_labels, test_labels = test_labels[:split_idx], test_labels[split_idx:]
 
     train_data = TensorDataset(from_numpy(train_data), from_numpy(train_labels))
     val_data = TensorDataset(from_numpy(val_data), from_numpy(val_labels))
