@@ -4,12 +4,12 @@ from matplotlib import pyplot as plt
 
 
 class WordsVisualizer:
-    def __init__(self, data: 'pd.DataFrame'):
+    def __init__(self, data: 'pandas.DataFrame'):
         self.wordcloud = WordCloud(
             background_color='white',
             max_words=200
         )
-        self.data: 'pd.DataFrame' = data
+        self.data: 'pandas.DataFrame' = data
 
     def create_wordcloud(self, path: str, label_attr: str, data_attr: str, value: str, show: bool = False) -> None:
         """

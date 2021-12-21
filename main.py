@@ -13,6 +13,7 @@ from SpamClassifierSingleLstmCell import SpamClassifierSingleLstmCell
 from Stats import Stats
 from IndexMapper import IndexMapper
 from Analysis import Analysis
+from models.lstm_model import LSTMModel
 
 SEQUENCE_LENGTH = 100  # the length of all sequences (number of words per sample)
 EMBEDDING_SIZE = 100  # Using 100-Dimensional GloVe embedding vectors
@@ -131,6 +132,18 @@ drop_prob = 0.2
 
 def get_model(selector):
     if selector == 0:
+        return LSTMModel(
+            VOCAB_SIZE,
+            OUTPUT_SIZE,
+            EMBEDDING_SIZE,
+            embedding_matrix,
+            HIDDEN_DIM,
+            2,
+            False,
+            dropout_prob=drop_prob
+        )
+
+    elif selector == 1:
         return SpamClassifierLstmLayer(
             vocab_size=VOCAB_SIZE,
             output_size=OUTPUT_SIZE,
@@ -141,48 +154,7 @@ def get_model(selector):
             device=device,
             drop_prob=drop_prob
         )
-    elif selector == 1:
-        return SpamClassifierSingleLstmCell(
-            vocab_size=VOCAB_SIZE,
-            output_size=OUTPUT_SIZE,
-            embedding_matrix=embedding_matrix,
-            embedding_size=EMBEDDING_SIZE,
-            hidden_dim=HIDDEN_DIM,
-            device=device,
-            drop_prob=drop_prob
-        )
-    elif selector == 2:
-        return SpamClassifierLstmPosPenn(
-            vocab_size=VOCAB_SIZE,
-            output_size=OUTPUT_SIZE,
-            embedding_matrix=embedding_matrix,
-            embedding_size=EMBEDDING_SIZE,
-            hidden_dim=HIDDEN_DIM,
-            device=device,
-            index_mapper=IndexMapper(tokenizer),
-            drop_prob=drop_prob
-        )
-    elif selector == 3:
-        return SpamClassifierLstmPosUniversal(
-            vocab_size=VOCAB_SIZE,
-            output_size=OUTPUT_SIZE,
-            embedding_matrix=embedding_matrix,
-            embedding_size=EMBEDDING_SIZE,
-            hidden_dim=HIDDEN_DIM,
-            device=device,
-            index_mapper=IndexMapper(tokenizer),
-            drop_prob=drop_prob
-        )
-    else:
-        return SpamClassifierSingleLstmCell(
-            vocab_size=VOCAB_SIZE,
-            output_size=OUTPUT_SIZE,
-            embedding_matrix=embedding_matrix,
-            embedding_size=EMBEDDING_SIZE,
-            hidden_dim=HIDDEN_DIM,
-            device=device,
-            drop_prob=drop_prob
-        )
+
 
 
 def get_title(selector):
@@ -205,8 +177,8 @@ precisions = []
 f1_measures = []
 all_stats = []
 
-models = np.array([get_model(3), get_model(2), get_model(1), get_model(0)])
-titles = np.array([get_title(3), get_title(2), get_title(1), get_title(0)])
+models = np.array([get_model(0), get_model(1)])
+titles = np.array([get_title(0), get_title(1)])
 
 for n in range(0, len(models)):
     title = titles[n]
@@ -231,16 +203,14 @@ for n in range(0, len(models)):
         titleOfEpoch = " Epoch: {}/{}".format(i + 1, EPOCHS)
         plotTitle = title + titleOfEpoch
         counter = 0
-        h = model.init_hidden(BATCH_SIZE)
         avg_loss = 0
 
         for inputs, labels in train_loader:
             counter += 1
-            h = tuple([e.data for e in h])
             inputs, labels = inputs.to(device), labels.to(device)
             model.zero_grad()
-            output, h = model(inputs, h)
-            loss = criterion(output, labels.float())
+            output = model(inputs)
+            loss = criterion(output.squeeze(1), labels.float())
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), clip)
             optimizer.step()
@@ -249,15 +219,13 @@ for n in range(0, len(models)):
             # For every (print_every) checking checking output of the model against the validation dataset
             # and saving the model if it performed better than the previous time
             if counter % print_every == 0:
-                val_h = model.init_hidden(BATCH_SIZE)
                 val_losses = []
                 # Set model to validation configuration - Doesn't get trained here
                 model.eval()
                 for inp, lab in val_loader:
-                    val_h = tuple([each.data for each in val_h])
                     inp, lab = inp.to(device), lab.to(device)
-                    out, val_h = model(inp, val_h)
-                    val_loss = criterion(out, lab.float())
+                    out = model(inp)
+                    val_loss = criterion(out.squeeze(1), lab.float())
                     val_losses.append(val_loss.item())
 
                 model.train()
@@ -285,17 +253,15 @@ for n in range(0, len(models)):
 
     test_losses = []
     num_correct = 0
-    h = model.init_hidden(BATCH_SIZE)
     model.eval()
     test_labels_vector = []
     test_pred_vector = []
 
     for inputs, labels in test_loader:
-        h = tuple([each.data for each in h])
         test_labels_vector.append(labels.item())
         inputs, labels = inputs.to(device), labels.to(device)
-        output, h = model(inputs, h)
-        test_loss = criterion(output, labels.float())
+        output = model(inputs)
+        test_loss = criterion(output.squeeze(1), labels.float())
         test_losses.append(test_loss.item())
         pred = torch.round(output.squeeze())  # Rounds the output to 0/1
         test_pred_vector.append(pred.item())

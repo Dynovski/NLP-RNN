@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from typing import List, Tuple, Dict
-from plotly import graph_objs as go
+from typing import List, Dict
 from tqdm import tqdm
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
@@ -15,22 +14,13 @@ from exceptions import IncorrectNumberOfAttributesException
 from preprocessing.utils import clean_sms_data
 
 
-class DataPreProcessor:
+class DataPreprocessor:
     """
     Class having utilities to preprocess provided dataset. Dataset is read and being processed as pandas'
     data frame.
 
     ---
     Attributes:
-        path: str
-            Path to the dataset file stored locally
-        encoding: str
-            Encoding used to read dataset file
-        attribute_names: List[str]
-            List of new attribute names for consecutive columns in data frame
-        calculate_len: Tuple[bool, str]
-            Argument specifying if length of each row in data frame should be calculated. First element is
-            a flag, second element specifies attribute name for which length should be calculated
         data: pandas.DataFrame
             Data frame containing all data
         stopwords: List[str]
@@ -39,15 +29,34 @@ class DataPreProcessor:
             Stemmer for english used for preprocessing
         tokenizer: keras.preprocessing.text.Tokenizer
             Tokenizer used to process text data to indices
+        LABEL_COLUMN: str
+            Name of label column
+        MAIN_DATA_COLUMN: str
+            Name of column containing data to use for training
+        ENCODED_TARGETS_COLUMN: str
+            Name of column containing labels encoded to integers
     """
     def __init__(
             self,
             path: str,
             encoding: str,
             attribute_names: List[str],
-            calculate_len: Tuple[bool, str] = (False, '')
+            data_column: str,
+            label_column: str
     ):
-        self.data: pd.DataFrame = pd.read_csv(path, encoding=encoding)
+        """
+        :param path: str
+            Path to the dataset file stored locally
+        :param encoding: str
+            List of new attribute names for consecutive columns in data frame
+        :param attribute_names: List[str]
+            List of new attribute names for consecutive columns in data frame
+        :param data_column: str
+            Name of the column that contains data
+        :param label_column: str
+            Name of the column that contains data labels
+        """
+        self.data: pd.DataFrame = pd.read_csv(path, delimiter=',', encoding=encoding)
 
         # Remove empty columns
         self.data.dropna(axis=1, how='any', inplace=True)
@@ -57,60 +66,20 @@ class DataPreProcessor:
         # Check if number of attributes is correct
         if self.data.shape[1] != len(attribute_names):
             raise IncorrectNumberOfAttributesException(self.data.shape[1], len(attribute_names))
-        self.data.columns = attribute_names
 
-        if calculate_len[0]:
-            assert calculate_len[1] in self.data.columns
-            self.data['data_len'] = self.data[calculate_len[1]].apply(lambda x: len(x.split(' ')))
+        self.data.columns = attribute_names
 
         self.stopwords: List[str] = stopwords.words('english')
         self.stemmer: SnowballStemmer = SnowballStemmer('english')
         self.tokenizer: Tokenizer = Tokenizer()
 
-    def max_element_length(self) -> int:
-        """
-        If length of data is computed, returns length of the longest data
+        self.MAIN_DATA_COLUMN = 'data_after_preprocessing'
+        self.ENCODED_TARGETS_COLUMN = 'encoded_targets'
 
-        :return: int
-            Length of the longest data
-        """
-        assert 'data_len' in self.data.columns
-        return max(self.data['data_len'])
+        self.data[self.MAIN_DATA_COLUMN] = self.data[data_column]
 
-    def analyze_distribution(self, attribute: str, path: str = '') -> pd.DataFrame:
-        """
-        Checks how many instances of given class of selected attributes is there in data.
-        By specifying path, histogram is created and saved at provided location.
-
-        :param attribute: str
-            Name of the attribute for which to check distribution
-        :param path: str
-            Path to the file to save distribution plot
-        :return: pandas.DataFrame
-            data frame containing class names and number of instances for given attribute
-        """
-        assert attribute in self.data.columns
-
-        distribution: pd.DataFrame = self.data.groupby(attribute)[attribute].agg('count')
-
-        if path:
-            fig = go.Figure()
-            for column in distribution.columns:
-                fig.add_trace(
-                    go.Bar(
-                        x=[column],
-                        y=[distribution[column][0]],
-                        name=column,
-                        text=[distribution[column][0]],
-                        textposition='auto'
-                    )
-                )
-            fig.update_layout(
-                title='<span style="font-size:32px; font-family:Times New Roman">Dataset distribution by target</span>'
-            )
-            fig.write_image(path)
-
-        return distribution
+        assert label_column in attribute_names
+        self.LABEL_COLUMN = label_column
 
     def _remove_stopwords(self, text: str) -> str:
         text = ' '.join(word for word in text.split(' ') if word not in self.stopwords)
@@ -120,75 +89,57 @@ class DataPreProcessor:
         text = ' '.join(self.stemmer.stem(word) for word in text.split(' '))
         return text
 
-    def clean_data(self, attribute: str) -> None:
+    def dataset_specific_preprocessing(self) -> None:
         """
-        Cleans data specified by attribute
+        Preprocessing specific for the dataset
 
-        :param attribute: str
-            Name of column containing data
         :return: None
         """
-        assert attribute in self.data.columns
+        raise NotImplementedError('subclasses must override dataset_specific_preprocessing(attribute: str)!')
 
-        self.data['clean_data'] = self.data[attribute].apply(clean_sms_data)
-
+    def remove_stopwords(self) -> None:
         # Remove stopwords
-        self.data['clean_data'] = self.data['clean_data'].apply(self._remove_stopwords)
+        self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(self._remove_stopwords)
 
-    def stem_data(self) -> None:
+    def stem(self) -> None:
         """
         Applies stemming so data
 
         :return: None
         """
-        assert 'clean_data' in self.data.columns
-        self.data['clean_data'] = self.data['clean_data'].apply(self._stem_text)
+        assert self.MAIN_DATA_COLUMN in self.data.columns
 
-    def encode_labels(self, attribute: str) -> None:
+        self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(self._stem_text)
+
+    def encode_targets(self) -> None:
         """
-        Encodes labels from categorical to numeric values
+        Encodes target labels from categorical to numeric values
 
-        :param attribute: str
-            Name of the attribute containing labels for data
         :return: None
         """
+        assert self.LABEL_COLUMN in self.data.columns
+
         encoder: LabelEncoder = LabelEncoder()
-        encoder.fit(self.data[attribute])
-        self.data[f'encoded_labels'] = encoder.transform(self.data[attribute])
+        encoder.fit(self.data[self.LABEL_COLUMN])
+        self.data[self.ENCODED_TARGETS_COLUMN] = encoder.transform(self.data[self.LABEL_COLUMN])
 
-    def get_data(self) -> pd.DataFrame:
+    def run(self) -> None:
         """
-        Function to access to data stored in DataPreprocessor
+        Call this function to preprocess the data
 
-        :return: pandas.Dataframe
-            Data stored in DataPreProcessor object
+        :return: None
         """
-        return self.data
-
-    def preprocess(self, data_attr: str, label_attr: str) -> pd.DataFrame:
-        """
-        Call this function to implicitly apply all possible processing to the data
-
-        :param data_attr: str
-            name of an attribute containing data to process
-        :param label_attr: str
-            name of an attribute containing labels of data
-        :return: pandas.Dataframe
-            Preprocessed data
-        """
-        self.clean_data(data_attr)
-        self.stem_data()
-        self.encode_labels(label_attr)
-
-        return self.data
+        raise NotImplementedError('subclasses must override run(data_attr: str, label_attr: str)!')
 
     @property
-    def preprocessed_data(self):
-        return self.data['clean_data']
+    def training_data(self) -> List[str]:
+        return self.data[self.MAIN_DATA_COLUMN].tolist()
 
     @property
-    def encoded_labels(self) -> np.ndarray:
-        return self.data['encoded_labels'].to_numpy(dtype=np.float32)
+    def target_labels(self) -> np.ndarray:
+        assert self.ENCODED_TARGETS_COLUMN in self.data.columns
+
+        return self.data[self.ENCODED_TARGETS_COLUMN].to_numpy(dtype=np.float32)
 
     def tokenize(self) -> np.ndarray:
         """
@@ -197,29 +148,30 @@ class DataPreProcessor:
         :return: numpy.ndarray
              Array of numerical values where each row corresponds to the same row of preprocessed data
         """
-        self.tokenizer.fit_on_texts(self.preprocessed_data)
+        self.tokenizer.fit_on_texts(self.training_data)
 
-        longest_sequence: str = max(self.preprocessed_data, key=lambda t: len(word_tokenize(t)))
-        longest_sentence_len: int = len(word_tokenize(longest_sequence))
+        longest_sequence: str = max(self.training_data, key=lambda t: len(word_tokenize(t)))
+        max_len: int = len(word_tokenize(longest_sequence))
 
         padded_sequences: np.ndarray = pad_sequences(
-            self.tokenizer.texts_to_sequences(self.preprocessed_data),
-            longest_sentence_len,
+            self.tokenizer.texts_to_sequences(self.training_data),
+            max_len,
             padding='post'
         )
 
         return padded_sequences
 
-    def create_glove_embedding_matrix(self, path: str, embedding_dim: int, vocab_len: int) -> np.ndarray:
+    def make_embedding_matrix(self, path: str, dim: int, *, stem: bool = False) -> np.ndarray:
         """
-        Creates glove embedding matrix
+        Creates glove embedding matrix. Must be called after tokenize()
 
         :param path: str
             Path to locally stored file containing pretrained glove model
-        :param embedding_dim: int
+        :param dim: int
             Dimension of glove vector
-        :param vocab_len: int
-            Number of unique tokens
+        :param stem: bool
+            Flag specifying whether to create embedding matrix for stems only
+
         :return: numpy.ndarray
             Matrix containing vector representation for each consecutive word in vocabulary
         """
@@ -228,11 +180,11 @@ class DataPreProcessor:
         with open(path, encoding='utf8') as f:
             for line in tqdm(f, "Reading GloVe"):
                 elements = line.split()
-                word = elements[0]
+                word = self.stemmer.stem(elements[0]) if stem else elements[0]
                 vector = np.asarray(elements[1:], dtype='float32')
-                word_to_vector_d[self.stemmer.stem(word)] = vector
+                word_to_vector_d[word] = vector
 
-        embedding_matrix = np.zeros((vocab_len, embedding_dim))
+        embedding_matrix = np.zeros((len(self.tokenizer.word_index) + 1, dim))
 
         count: int = 0
         for word, index in self.tokenizer.word_index.items():
@@ -241,6 +193,19 @@ class DataPreProcessor:
                 count += 1
                 embedding_matrix[index] = vector
 
-        print(f'Glove has {count} of {len(self.tokenizer.word_index) + 1} words in vocabulary')
+        print(f'There are embeddings for {count} words of {len(self.tokenizer.word_index) + 1} words in vocabulary')
 
         return embedding_matrix
+
+
+class SmsDataPreprocessor(DataPreprocessor):
+    def __init__(self):
+        super(SmsDataPreprocessor, self).__init__('data/SMSDataset.csv', 'latin-1', ['class', 'message'], 'message', 'class')
+
+    def dataset_specific_preprocessing(self) -> None:
+        self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(clean_sms_data)
+
+    def run(self) -> None:
+        self.dataset_specific_preprocessing()
+        self.stem()
+        self.encode_targets()

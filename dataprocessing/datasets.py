@@ -1,17 +1,22 @@
+from typing import Tuple
+from numpy import ndarray
+from torch import from_numpy
 from torch.utils.data import TensorDataset
 from sklearn.model_selection import train_test_split
-from data_preprocessing import DataPreProcessor
-from typing import Tuple
-from torch import from_numpy
-from numpy import ndarray
 
 
-def create_sms_datasets(path: str, train_data_ratio: float) -> Tuple[TensorDataset, TensorDataset, TensorDataset]:
+def create_sms_datasets(
+        data: ndarray,
+        labels: ndarray,
+        train_data_ratio: float
+) -> Tuple[TensorDataset, TensorDataset, TensorDataset]:
     """
-    Create train, validation and test dataprocessing for SMS Collection data
+    Create train, validation and test data processing for SMS Collection data
 
-    :param path: str
-        Path to file containing data
+    :param data: numpy.ndarray
+        Array containing data for training
+    :param labels: numpy.ndarray
+        Array containing labels for training data
     :param train_data_ratio: float
         Ratio from 0 to 1 specifying how much of all data should be used for training, remaining data is split
         50/50 between validation and test
@@ -20,14 +25,10 @@ def create_sms_datasets(path: str, train_data_ratio: float) -> Tuple[TensorDatas
     """
     assert 0 <= train_data_ratio <= 1
 
-    preprocessor = DataPreProcessor(path, 'latin-1', ['class', 'message'])
-    preprocessor.preprocess('message', 'class')
-    tokenized_data: ndarray = preprocessor.tokenize()
-
     train_data, test_data, train_labels, test_labels = train_test_split(
-        tokenized_data,
-        preprocessor.encoded_labels,
-        test_size=1 - train_data_ratio,
+        data,
+        labels,
+        train_size=train_data_ratio,
         random_state=7
     )
 

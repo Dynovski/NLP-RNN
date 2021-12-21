@@ -1,43 +1,62 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
+
+from torch import tensor, float32
+from numpy import ndarray
+
 from config import DEVICE
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, vocab_size, output_size, embedding_dim, embedding_matrix, hidden_dim, n_layers, drop_prob=0.5):
+    def __init__(
+            self,
+            n_unique_words: int,
+            n_output_classes: int,
+            embedding_vector_size: int,
+            embedding_weights_matrix: ndarray,
+            hidden_state_size: int,
+            n_lstm_layers: int,
+            is_lstm_bidirectional: bool = False,
+            dropout_prob: float = 0.5
+    ):
         super(LSTMModel, self).__init__()
-        self.output_size = output_size
-        self.n_layers = n_layers
-        self.hidden_dim = hidden_dim
+        self.n_output_classes: int = n_output_classes
+        self.n_lstm_layers: int = n_lstm_layers
+        self.hidden_state_size: int = hidden_state_size
+        self.multiplier: int = int(is_lstm_bidirectional) + 1
 
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
-        self.embedding.weight.requires_grad = False
+        self.embedding = nn.Embedding(n_unique_words, embedding_vector_size)
+        self.embedding.weight = nn.Parameter(tensor(embedding_weights_matrix, dtype=float32))
+        self.embedding.weight.requires_grad = True
 
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers, dropout=drop_prob, batch_first=True)
-        self.dense = nn.Sequential(
-            nn.Dropout(0.5),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(hidden_dim, output_size)
+        self.lstm = nn.LSTM(
+            embedding_vector_size,
+            hidden_state_size,
+            n_lstm_layers,
+            bidirectional=is_lstm_bidirectional,
+            dropout=dropout_prob,
+            batch_first=True
         )
 
-    def forward(self, x, hidden):
-        batch_size = x.size(0)
-        x = x.long()
-        embeds = self.embedding(x)
-        lstm_out, hidden = self.lstm(embeds, hidden)
-        lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
+        self.dense = nn.Sequential(
+            nn.BatchNorm1d(hidden_state_size if not is_lstm_bidirectional else 2 * hidden_state_size),
+            nn.Linear(hidden_state_size if not is_lstm_bidirectional else 2 * hidden_state_size, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout_prob),
+            nn.Linear(256, n_output_classes)
+        )
 
-        out = self.dense(lstm_out)
+    def forward(self, batch):
+        batch_size = batch.size(0)
+        hidden_state = (
+            torch.zeros(self.n_lstm_layers * self.multiplier, batch_size, self.hidden_state_size).to(DEVICE),
+            torch.zeros(self.n_lstm_layers * self.multiplier, batch_size, self.hidden_state_size).to(DEVICE)
+        )
 
-        out = out.view(batch_size, -1)
-        out = out[:, -1]
-        return out, hidden
+        batch = batch.long()
+        out = self.embedding(batch)
+        out, _ = self.lstm(out, hidden_state)
+        out = out[:, -1, :]
+        out = self.dense(out)
 
-    def init_hidden(self, batch_size):
-        weight = next(self.parameters()).data
-        hidden = (weight.new(self.n_layers, batch_size, self.hidden_dim).zero_().to(DEVICE),
-                  weight.new(self.n_layers, batch_size, self.hidden_dim).zero_().to(DEVICE))
-        return hidden
+        return out

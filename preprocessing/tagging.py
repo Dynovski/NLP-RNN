@@ -14,7 +14,7 @@ class Tagger:
 class FullTagger(Tagger):
     def __init__(self):
         tag_list = [self._map_tag(tag) for tag in load('help/tagsets/upenn_tagset.pickle').keys()]
-        super(FullTagger).__init__(tag_list)
+        super(FullTagger, self).__init__(tag_list)
 
     def tag_tokens(self, tokens: List[str]):
         pos_tags = pos_tag(tokens)
@@ -41,7 +41,7 @@ class UniversalTagger(Tagger):
             'ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN',
             'NUM', 'PRT', 'PRON', 'VERB', '.', 'X', 'EMPTY'
         ]
-        super(UniversalTagger).__init__(tag_list)
+        super(UniversalTagger, self).__init__(tag_list)
 
     def tag_tokens(self, tokens: List[str]):
         pos_tags = pos_tag(tokens, tagset='universal')
