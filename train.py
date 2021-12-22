@@ -161,42 +161,24 @@ def test(
 
 
 if __name__ == '__main__':
-    preprocessors: Optional[List[DataPreprocessor]] = None
+    preprocessor: Optional[DataPreprocessor] = None
 
     if cfg.TASK_TYPE == cfg.TaskType.SMS:
-        preprocessors: List[SmsDataPreprocessor] = [SmsDataPreprocessor()]
+        preprocessor: SmsDataPreprocessor = SmsDataPreprocessor()
     elif cfg.TASK_TYPE == cfg.TaskType.TWEET:
-        preprocessors: List[TweetDataPreprocessor] = [TweetDataPreprocessor('data/tweets_train.csv'),
-                                                      TweetDataPreprocessor('data/tweets_test.csv')]
+        preprocessor: TweetDataPreprocessor = TweetDataPreprocessor('data/tweets_train.csv')
 
-    assert preprocessors is not None
+    assert preprocessor is not None
 
-    [preprocessor.run() for preprocessor in preprocessors]
+    preprocessor.run()
 
-    training_data: Optional[np.ndarray] = None
-    test_data: Optional[np.ndarray] = None
-    if len(preprocessors) == 1:
-        training_data: np.ndarray = preprocessors[0].tokenize()
-    elif len(preprocessors) == 2:
-        training_data: np.ndarray = preprocessors[0].tokenize()
-        test_data: np.ndarray = preprocessors[1].tokenize()
+    training_data: np.ndarray = preprocessor.tokenize()
 
-    assert training_data is not None
-
-    datasets = None
-
-    if cfg.TASK_TYPE == cfg.TaskType.SMS:
-        datasets = create_double_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
-    elif cfg.TASK_TYPE == cfg.TaskType.TWEET:
-        train_and_val = create_single_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
-        test = create_dataset(test_data, preprocessors[1].target_labels)
-        datasets = train_and_val + (test,)
-
-    assert datasets is not None
+    datasets = create_double_split_dataset(training_data, preprocessor.target_labels, cfg.TRAIN_DATA_RATIO)
 
     train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
 
-    embedding_matrix: np.ndarray = preprocessors[0].make_embedding_matrix(
+    embedding_matrix: np.ndarray = preprocessor.make_embedding_matrix(
         'data/glove.6B.100d.txt',
         cfg.EMBEDDING_VECTOR_SIZE
     )

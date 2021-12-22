@@ -224,7 +224,7 @@ class SmsDataPreprocessor(DataPreprocessor):
 
 
 class TweetDataPreprocessor(DataPreprocessor):
-    def __init__(self, path: str, attribute_names):
+    def __init__(self, path: str):
         super(TweetDataPreprocessor, self).__init__(
             path=path,
             encoding='latin-1',
