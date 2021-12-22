@@ -15,6 +15,7 @@ from data_preprocessing import DataPreprocessor, SmsDataPreprocessor
 from dataprocessing.datasets import create_sms_datasets
 from dataprocessing.dataloaders import create_data_loader
 from models.utils import save_checkpoint, load_checkpoint
+from analyzing.visualization import WordsVisualizer
 
 
 def train() -> None:
@@ -32,6 +33,20 @@ def train() -> None:
     train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
 
     embedding_matrix = preprocessor.make_embedding_matrix('data/glove.6B.100d.txt', cfg.EMBEDDING_VECTOR_SIZE)
+
+    visualizer = WordsVisualizer(preprocessor.data)
+    visualizer.create_wordcloud(
+        'figures/SpamWordCloud',
+        'class',
+        preprocessor.MAIN_DATA_COLUMN,
+        'spam'
+    )
+    visualizer.create_wordcloud(
+        'figures/HamWordCloud',
+        'class',
+        preprocessor.MAIN_DATA_COLUMN,
+        'ham'
+    )
 
     model: Optional[torch.Module] = None
 

@@ -12,12 +12,16 @@ def clean_sms_data(text: str) -> str:
         Preprocessed text
     """
     text = text.lower()
-    text = re.sub(r'[.*?]', '', text)
-    text = re.sub(r'https?://\S+|www\.\S+', '', text)
+    text = re.sub(r'\[.*?\]', '', text)
+    text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
+    text = re.sub(r'<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});', '', text)
     text = re.sub(r'<.*?>+', '', text)
     text = re.sub(r'[%s]' % re.escape(string.punctuation), '', text)
     text = re.sub(r'\n', '', text)
     text = re.sub(r'\w*\d\w*', '', text)
+    text = re.sub(r'[^a-zA-Z]', ' ', text)
+    text = re.sub(r'/\s\s+/g', ' ', text)
+    text = text.strip()
 
     return text
 

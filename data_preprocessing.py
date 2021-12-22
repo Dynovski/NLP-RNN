@@ -40,6 +40,7 @@ class DataPreprocessor:
             self,
             path: str,
             encoding: str,
+            columns_to_drop: List[str],
             attribute_names: List[str],
             data_column: str,
             label_column: str
@@ -49,6 +50,8 @@ class DataPreprocessor:
             Path to the dataset file stored locally
         :param encoding: str
             List of new attribute names for consecutive columns in data frame
+        :param columns_to_drop: List[str]
+            List of column names of columns to drop
         :param attribute_names: List[str]
             List of new attribute names for consecutive columns in data frame
         :param data_column: str
@@ -59,7 +62,7 @@ class DataPreprocessor:
         self.data: pd.DataFrame = pd.read_csv(path, delimiter=',', encoding=encoding)
 
         # Remove empty columns
-        self.data.dropna(axis=1, how='any', inplace=True)
+        self.data.drop(columns=columns_to_drop, inplace=True)
         # Remove empty words
         self.data.dropna(how='any', inplace=True)
 
@@ -203,6 +206,7 @@ class SmsDataPreprocessor(DataPreprocessor):
         super(SmsDataPreprocessor, self).__init__(
             path='data/SMSDataset.csv',
             encoding='latin-1',
+            columns_to_drop=["Unnamed: 2", "Unnamed: 3", "Unnamed: 4"],
             attribute_names=['class', 'message'],
             data_column='message',
             label_column='class'
@@ -211,7 +215,9 @@ class SmsDataPreprocessor(DataPreprocessor):
     def dataset_specific_preprocessing(self) -> None:
         self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(clean_sms_data)
 
-    def run(self) -> None:
+    def run(self, *, stem: bool = False, encode: bool = True) -> None:
         self.dataset_specific_preprocessing()
-        self.stem()
-        self.encode_targets()
+        if stem:
+            self.stem()
+        if encode:
+            self.encode_targets()

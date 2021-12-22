@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 class WordsVisualizer:
     def __init__(self, data: 'pandas.DataFrame'):
         self.wordcloud = WordCloud(
+            width=3600,
+            height=1900,
             background_color='white',
             max_words=200
         )
@@ -29,7 +31,7 @@ class WordsVisualizer:
         """
         self.wordcloud.generate(' '.join(text for text in self.data.loc[self.data[label_attr] == value, data_attr]))
 
-        plt.figure(figsize=(18, 10))
+        plt.figure(figsize=(36, 19))
         plt.title(
             f'Top words for {value}',
             fontdict={'size': 22, 'verticalalignment': 'bottom'}

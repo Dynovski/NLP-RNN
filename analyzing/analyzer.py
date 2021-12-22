@@ -1,4 +1,7 @@
-from plotly import graph_objs as go
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from data_preprocessing import DataPreprocessor, SmsDataPreprocessor
 
 
 class Analyzer:
@@ -22,20 +25,23 @@ class Analyzer:
         distribution: 'pandas.DataFrame' = self.data.groupby(attribute)[attribute].agg('count')
 
         if path:
-            fig = go.Figure()
-            for column in distribution.columns:
-                fig.add_trace(
-                    go.Bar(
-                        x=[column],
-                        y=[distribution[column][0]],
-                        name=column,
-                        text=[distribution[column][0]],
-                        textposition='auto'
-                    )
-                )
-            fig.update_layout(
-                title='<span style="font-size:32px; font-family:Times New Roman">Dataset distribution by target</span>'
-            )
-            fig.write_image(path)
+            plt.figure(figsize=(12, 8))
+            plot = sns.countplot(self.data[attribute])
+            plot.set_title("Count plot of classes")
+            plot.set_xlabel("Classes")
+            plot.set_ylabel("Number of data points")
+            fig = plot.get_figure()
+            fig.savefig(path)
 
         return distribution
+
+
+def analyze() -> None:
+    preprocessor = SmsDataPreprocessor()
+    preprocessor.run()
+    analyzer = Analyzer(preprocessor.data)
+    print(analyzer.analyze_distribution('class', 'figures/SmsClassDistribution.png'))
+
+
+if __name__ == '__main__':
+    analyze()
