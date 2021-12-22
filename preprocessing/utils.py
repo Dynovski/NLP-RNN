@@ -11,6 +11,10 @@ def clean_sms_data(text: str) -> str:
     :return: str
         Preprocessed text
     """
+    text = re.sub(r"&gt;", ">", text)
+    text = re.sub(r"&lt;", "<", text)
+    text = re.sub(r"&amp;", "&", text)
+
     text = text.lower()
     text = re.sub(r'\[.*?\]', '', text)
     text = re.sub(r'https?://\S+|www\.\S+', '', text)
@@ -44,6 +48,10 @@ def clean_tweets_data(text: str) -> str:
         ']+',
         flags=re.UNICODE
     )
+
+    text = re.sub(r"&gt;", ">", text)
+    text = re.sub(r"&lt;", "<", text)
+    text = re.sub(r"&amp;", "&", text)
 
     text = text.lower()
     text = re.sub(emoji_pattern, '', text)

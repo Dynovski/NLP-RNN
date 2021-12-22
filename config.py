@@ -17,7 +17,7 @@ RESULTS_FOLDER = 'results'
 CHECKPOINTS_FOLDER = 'checkpoints'
 CHECKPOINT_NAME = 'checkpoint.pth'
 
-TASK_TYPE = TaskType.TWEET
+TASK_TYPE = TaskType.SMS
 NETWORK_TYPE = NetworkType.LSTM
 TRAIN_DATA_RATIO = 0.8
 BATCH_SIZE = 32

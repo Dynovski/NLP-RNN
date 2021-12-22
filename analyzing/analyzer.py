@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from data_preprocessing import DataPreprocessor, SmsDataPreprocessor
+from mlxtend.plotting import plot_confusion_matrix
+
+from data_preprocessing import SmsDataPreprocessor
 
 
 class Analyzer:
@@ -34,6 +36,15 @@ class Analyzer:
             fig.savefig(path)
 
         return distribution
+
+    @staticmethod
+    def plot_confusion_matrix(data, labels: 'List[str]', path: str):
+        plt.figure()
+        plot_confusion_matrix(data, figsize=(16, 12), hide_ticks=True, cmap=plt.cm.Blues)
+        plt.xticks(range(len(labels)), labels, fontsize=12)
+        plt.yticks(range(len(labels)), labels, fontsize=12)
+        plt.savefig(path)
+
 
 
 def analyze() -> None:

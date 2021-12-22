@@ -8,7 +8,6 @@ from typing import Optional
 from torch.optim import Adam
 from torch import round, sigmoid
 from torch.cuda.amp import GradScaler, autocast
-from typing import List
 
 import config as cfg
 
@@ -17,6 +16,7 @@ from data_preprocessing import DataPreprocessor, SmsDataPreprocessor, TweetDataP
 from dataprocessing.datasets import create_double_split_dataset, create_dataset, create_single_split_dataset
 from dataprocessing.dataloaders import create_data_loader
 from models.utils import save_checkpoint, load_checkpoint
+from analyzing.analyzer import Analyzer
 
 
 def train(
@@ -150,7 +150,10 @@ def test(
     predictions = round(sigmoid(model(data))).detach().numpy()
 
     print('\nConfusion matrix:')
-    print(metrics.confusion_matrix(labels, predictions))
+    cm = metrics.confusion_matrix(labels, predictions)
+    print(cm)
+
+    Analyzer.plot_confusion_matrix(cm, ['Ham', 'Spam'], 'figures/confusionMatrix.png')
 
     print("\nAccuracy: {:.3f}%".format(metrics.accuracy_score(labels, predictions) * 100))
     print("F1-score: {:.3f}%".format(metrics.f1_score(labels, predictions) * 100))
