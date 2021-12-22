@@ -200,7 +200,13 @@ class DataPreprocessor:
 
 class SmsDataPreprocessor(DataPreprocessor):
     def __init__(self):
-        super(SmsDataPreprocessor, self).__init__('data/SMSDataset.csv', 'latin-1', ['class', 'message'], 'message', 'class')
+        super(SmsDataPreprocessor, self).__init__(
+            path='data/SMSDataset.csv',
+            encoding='latin-1',
+            attribute_names=['class', 'message'],
+            data_column='message',
+            label_column='class'
+        )
 
     def dataset_specific_preprocessing(self) -> None:
         self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(clean_sms_data)
