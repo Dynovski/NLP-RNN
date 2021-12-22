@@ -5,17 +5,17 @@ import string
 def clean_sms_data(text: str) -> str:
     """
     Cleans text from redundant elements typical for SMS Collection corpus.
-    Makes text lowercase, removes text in square brackets, removes links, removes punctuation
-    and removes words containing numbers.
+    Makes text lowercase, removes text in square brackets, removes links, html tags, words containing numbers,
+    non-alphanumeric characters and redundant spaces.
 
     :return: str
         Preprocessed text
     """
     text = text.lower()
     text = re.sub(r'\[.*?\]', '', text)
-    text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
+    text = re.sub(r'https?://\S+|www\.\S+', '', text)
     text = re.sub(r'<.*?>+', '', text)
-    text = re.sub(r'\n', '', text)
+    text = re.sub(r'\n', ' ', text)
     text = re.sub(r'\w*\d\w*', '', text)
     text = re.sub(r'[^a-zA-Z0-9]', ' ', text)
     text = re.sub(r'/\s\s+/g', ' ', text)
@@ -27,6 +27,8 @@ def clean_sms_data(text: str) -> str:
 def clean_tweets_data(text: str) -> str:
     """
     Cleans text from redundant elements typical for Disaster Tweets corpus.
+    Makes text lowercase. Removes emojis, twitter annotations, html tags, links, words with numbers,
+    punctuation, redundant spaces
 
     :return: str
         Preprocessed text
@@ -42,18 +44,19 @@ def clean_tweets_data(text: str) -> str:
         ']+',
         flags=re.UNICODE
     )
+
     text = text.lower()
-    text = re.sub(r'\[.*?\]', '', text)
-    text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
-    text = re.sub(r'<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});', '', text)
+    text = re.sub(emoji_pattern, '', text)
+    text = re.sub(r'https?://\S+|www\.\S+', '', text)
     text = re.sub(r'<.*?>+', '', text)
-    text = re.sub(r'[#@]\w+', '', text)
+    text = re.sub(r'@\w+', '', text)
     text = re.sub(r'\n', '', text)
     text = re.sub(r'\w*\d\w*', '', text)
     text = re.sub(r'/\s\s+/g', ' ', text)
     text = text.strip()
 
-    return text
+    table = str.maketrans('', '', string.punctuation)
+    return text.translate(table)
 
 
 def clean_news_data(text: str) -> str:
@@ -65,3 +68,17 @@ def clean_news_data(text: str) -> str:
     """
     # TODO: make regex rules to clean news
     pass
+
+# TODO: spelling correction
+# from spellchecker import SpellChecker
+#
+# spell = SpellChecker()
+# def correct_spellings(text):
+#     corrected_text = []
+#     misspelled_words = spell.unknown(text.split())
+#     for word in text.split():
+#         if word in misspelled_words:
+#             corrected_text.append(spell.correction(word))
+#         else:
+#             corrected_text.append(word)
+#     return " ".join(corrected_text)
