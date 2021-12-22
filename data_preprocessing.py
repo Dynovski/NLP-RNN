@@ -11,7 +11,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 
 from exceptions import IncorrectNumberOfAttributesException
-from preprocessing.utils import clean_sms_data, clean_tweets_data
+from preprocessing.utils import clean_sms_data, clean_tweets_data, clean_news_data
 
 
 class DataPreprocessor:
@@ -224,9 +224,9 @@ class SmsDataPreprocessor(DataPreprocessor):
 
 
 class TweetDataPreprocessor(DataPreprocessor):
-    def __init__(self, path: str):
+    def __init__(self):
         super(TweetDataPreprocessor, self).__init__(
-            path=path,
+            path='data/tweets_train.csv',
             encoding='latin-1',
             columns_to_drop=['id', 'keyword', 'location'],
             attribute_names=['message', 'class'],
@@ -237,7 +237,29 @@ class TweetDataPreprocessor(DataPreprocessor):
     def dataset_specific_preprocessing(self) -> None:
         self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(clean_tweets_data)
 
-    def run(self, *, stem: bool = False, encode: bool = True) -> None:
+    def run(self, *, stem: bool = False, encode: bool = False) -> None:
+        self.dataset_specific_preprocessing()
+        if stem:
+            self.stem()
+        if encode:
+            self.encode_targets()
+
+
+class NewsDataPreprocessor(DataPreprocessor):
+    def __init__(self, path: str):
+        super(NewsDataPreprocessor, self).__init__(
+            path=path,
+            encoding='latin-1',
+            columns_to_drop=[],
+            attribute_names=['class', 'title', 'text'],
+            data_column='text',
+            label_column='class'
+        )
+
+    def dataset_specific_preprocessing(self) -> None:
+        self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(clean_news_data)
+
+    def run(self, *, stem: bool = False, encode: bool = False) -> None:
         self.dataset_specific_preprocessing()
         if stem:
             self.stem()

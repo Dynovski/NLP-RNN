@@ -6,7 +6,7 @@ def clean_sms_data(text: str) -> str:
     """
     Cleans text from redundant elements typical for SMS Collection corpus.
     Makes text lowercase, removes text in square brackets, removes links, html tags, words containing numbers,
-    non-alphanumeric characters and redundant spaces.
+    newlines, non-alphanumeric characters and redundant spaces.
 
     :return: str
         Preprocessed text
@@ -31,7 +31,7 @@ def clean_sms_data(text: str) -> str:
 def clean_tweets_data(text: str) -> str:
     """
     Cleans text from redundant elements typical for Disaster Tweets corpus.
-    Makes text lowercase. Removes emojis, twitter annotations, html tags, links, words with numbers,
+    Makes text lowercase. Removes emojis, twitter annotations, html tags, links, newlines, words with numbers,
     punctuation, redundant spaces
 
     :return: str
@@ -70,12 +70,20 @@ def clean_tweets_data(text: str) -> str:
 def clean_news_data(text: str) -> str:
     """
     Cleans text from redundant elements typical for AG News corpus.
+    Makes text lowercase. Removes links, newlines, punctuation, numbers and redundant spaces
 
     :return: str
         Preprocessed text
     """
-    # TODO: make regex rules to clean news
-    pass
+    text = text.lower()
+    text = re.sub(r'https?://\S+|www\.\S+', '', text)
+    text = re.sub(r'\n', '', text)
+    text = re.sub(r'\d+', '', text)
+    text = re.sub(r'/\s\s+/g', ' ', text)
+    text = text.strip()
+
+    table = str.maketrans('', '', string.punctuation)
+    return text.translate(table)
 
 # TODO: spelling correction
 # from spellchecker import SpellChecker

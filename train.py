@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from tqdm import tqdm
 from sklearn import metrics
-from typing import Optional
+from typing import Optional, List
 from torch.optim import Adam
 from torch import round, sigmoid
 from torch.cuda.amp import GradScaler, autocast
@@ -12,7 +12,7 @@ from torch.cuda.amp import GradScaler, autocast
 import config as cfg
 
 from models.lstm_model import LSTMModel
-from data_preprocessing import DataPreprocessor, SmsDataPreprocessor, TweetDataPreprocessor
+from data_preprocessing import DataPreprocessor, SmsDataPreprocessor, TweetDataPreprocessor, NewsDataPreprocessor
 from dataprocessing.datasets import create_double_split_dataset, create_dataset, create_single_split_dataset
 from dataprocessing.dataloaders import create_data_loader
 from models.utils import save_checkpoint, load_checkpoint
@@ -147,7 +147,7 @@ def test(
 
     model.eval()
     data = data.to(cfg.DEVICE)
-    predictions = round(sigmoid(model(data))).detach().numpy()
+    predictions = round(sigmoid(model(data))).cpu().detach().numpy()
 
     print('\nConfusion matrix:')
     cm = metrics.confusion_matrix(labels, predictions)
@@ -164,24 +164,38 @@ def test(
 
 
 if __name__ == '__main__':
-    preprocessor: Optional[DataPreprocessor] = None
+    preprocessors: Optional[List[DataPreprocessor]] = None
 
     if cfg.TASK_TYPE == cfg.TaskType.SMS:
-        preprocessor: SmsDataPreprocessor = SmsDataPreprocessor()
+        preprocessors: List[SmsDataPreprocessor] = [SmsDataPreprocessor()]
     elif cfg.TASK_TYPE == cfg.TaskType.TWEET:
-        preprocessor: TweetDataPreprocessor = TweetDataPreprocessor('data/tweets_train.csv')
+        preprocessors: List[TweetDataPreprocessor] = [TweetDataPreprocessor()]
+    elif cfg.TASK_TYPE == cfg.TaskType.NEWS:
+        preprocessors: List[NewsDataPreprocessor] = [NewsDataPreprocessor('data/news_train.csv'),
+                                                     NewsDataPreprocessor('data/news_test.csv')]
 
-    assert preprocessor is not None
+    assert preprocessors is not None
 
-    preprocessor.run()
+    [preprocessor.run() for preprocessor in preprocessors]
 
-    training_data: np.ndarray = preprocessor.tokenize()
+    training_data: np.ndarray = preprocessors[0].tokenize()
+    test_data: Optional[np.ndarray] = None
 
-    datasets = create_double_split_dataset(training_data, preprocessor.target_labels, cfg.TRAIN_DATA_RATIO)
+    if len(preprocessors) > 1:
+        test_data: np.ndarray = preprocessors[1].tokenize()
+
+    datasets = None
+
+    if len(preprocessors) == 1:
+        datasets = create_double_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
+    elif len(preprocessors) == 2:
+        train_and_val = create_single_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
+        test = create_dataset(test_data, preprocessors[1].target_labels)
+        datasets = train_and_val + (test,)
 
     train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
 
-    embedding_matrix: np.ndarray = preprocessor.make_embedding_matrix(
+    embedding_matrix: np.ndarray = preprocessors[0].make_embedding_matrix(
         'data/glove.6B.100d.txt',
         cfg.EMBEDDING_VECTOR_SIZE
     )

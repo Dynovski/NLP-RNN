@@ -6,6 +6,7 @@ from enum import Enum
 class TaskType(Enum):
     SMS = 'sms'
     TWEET = 'tweet'
+    NEWS = 'news'
 
 
 class NetworkType(Enum):
