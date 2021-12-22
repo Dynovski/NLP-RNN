@@ -3,51 +3,27 @@ import numpy as np
 import torch.nn as nn
 
 from tqdm import tqdm
+from sklearn import metrics
 from typing import Optional
 from torch.optim import Adam
 from torch import round, sigmoid
 from torch.cuda.amp import GradScaler, autocast
+from typing import List
 
 import config as cfg
 
 from models.lstm_model import LSTMModel
-from data_preprocessing import DataPreprocessor, SmsDataPreprocessor
-from dataprocessing.datasets import create_sms_datasets
+from data_preprocessing import DataPreprocessor, SmsDataPreprocessor, TweetDataPreprocessor
+from dataprocessing.datasets import create_double_split_dataset, create_dataset, create_single_split_dataset
 from dataprocessing.dataloaders import create_data_loader
 from models.utils import save_checkpoint, load_checkpoint
-from analyzing.visualization import WordsVisualizer
 
 
-def train() -> None:
-    preprocessor: Optional[DataPreprocessor] = None
-
-    if cfg.TASK_TYPE == cfg.TaskType.SMS:
-        preprocessor: SmsDataPreprocessor = SmsDataPreprocessor()
-
-    assert preprocessor is not None
-
-    preprocessor.run()
-    training_data: np.ndarray = preprocessor.tokenize()
-
-    datasets = create_sms_datasets(training_data, preprocessor.target_labels, cfg.TRAIN_DATA_RATIO)
-    train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
-
-    embedding_matrix = preprocessor.make_embedding_matrix('data/glove.6B.100d.txt', cfg.EMBEDDING_VECTOR_SIZE)
-
-    visualizer = WordsVisualizer(preprocessor.data)
-    visualizer.create_wordcloud(
-        'figures/SpamWordCloud',
-        'class',
-        preprocessor.MAIN_DATA_COLUMN,
-        'spam'
-    )
-    visualizer.create_wordcloud(
-        'figures/HamWordCloud',
-        'class',
-        preprocessor.MAIN_DATA_COLUMN,
-        'ham'
-    )
-
+def train(
+        embedding_matrix: np.ndarray,
+        train_dl: 'torch.utils.data.Dataloader',
+        val_dl: 'torch.utils.data.Dataloader'
+) -> None:
     model: Optional[torch.Module] = None
 
     if cfg.NETWORK_TYPE == cfg.NetworkType.LSTM:
@@ -100,7 +76,7 @@ def train() -> None:
             scaler.step(optimizer)
             scaler.update()
 
-            if index % 49 == 0:
+            if index % 19 == 0:
                 val_losses = []
                 num_val_correct = 0
                 model.eval()
@@ -149,58 +125,81 @@ def train() -> None:
                 cfg.CHECKPOINTS_FOLDER
             )
 
-    test_losses = []
-    num_correct = 0
+
+def test(
+        embedding_matrix: np.ndarray,
+        data: torch.Tensor,
+        labels: torch.Tensor
+) -> None:
+    model: Optional[torch.Module] = None
+
+    if cfg.NETWORK_TYPE == cfg.NetworkType.LSTM:
+        model: LSTMModel = LSTMModel(
+            embedding_matrix.shape[0],
+            cfg.OUTPUT_CLASSES,
+            cfg.EMBEDDING_VECTOR_SIZE,
+            embedding_matrix,
+            cfg.HIDDEN_STATE_SIZE,
+            cfg.NUM_RECURRENT_LAYERS
+        ).to(cfg.DEVICE)
 
     model.load_state_dict(torch.load('./state/state_dict.pth'))
-    model.eval()
-    for inputs, labels in test_dl:
-        inputs, labels = inputs.to(cfg.DEVICE), labels.to(cfg.DEVICE)
-        output = model(inputs)
-        test_loss = criterion(output.squeeze(), labels.float())
-        test_losses.append(test_loss.item())
-        predictions = round(sigmoid(output.squeeze()))  # rounds the output to 0/1
-        correct_tensor = predictions.eq(labels.float().view_as(predictions))
-        correct = np.squeeze(correct_tensor.cpu().numpy())
-        num_correct += np.sum(correct)
 
-    print("Test loss: {:.3f}".format(np.mean(test_losses)))
-    test_acc = num_correct / len(test_dl.dataset)
-    print("Test accuracy: {:.3f}%".format(test_acc * 100))
-    #
-    # print('KERAS---------------------------------------------------')
-    # k_model = glove_lstm(embedding_matrix, len(sequence[0]))
-    #
-    # X_train, X_test, y_train, y_test = train_test_split(
-    #     sequence,
-    #     preprocessor.encoded_labels,
-    #     test_size=0.2,
-    #     random_state=42
-    # )
-    #
-    # checkpoint = ModelCheckpoint(
-    #     'model.h5',
-    #     monitor='val_loss',
-    #     verbose=1,
-    #     save_best_only=True
-    # )
-    # reduce_lr = ReduceLROnPlateau(
-    #     monitor='val_loss',
-    #     factor=0.2,
-    #     verbose=1,
-    #     patience=5,
-    #     min_lr=0.001
-    # )
-    # k_model.fit(
-    #     X_train,
-    #     y_train,
-    #     epochs=7,
-    #     batch_size=32,
-    #     validation_data=(X_test, y_test),
-    #     verbose=1,
-    #     callbacks=[reduce_lr, checkpoint]
-    # )
+    model.eval()
+    data = data.to(cfg.DEVICE)
+    predictions = round(sigmoid(model(data))).detach().numpy()
+
+    print('\nConfusion matrix:')
+    print(metrics.confusion_matrix(labels, predictions))
+
+    print("\nAccuracy: {:.3f}%".format(metrics.accuracy_score(labels, predictions) * 100))
+    print("F1-score: {:.3f}%".format(metrics.f1_score(labels, predictions) * 100))
+    print("Precision: {:.3f}%".format(metrics.precision_score(labels, predictions) * 100))
+    print("Recall: {:.3f}%".format(metrics.recall_score(labels, predictions) * 100))
+    print("-" * 53)
+    print(metrics.classification_report(labels, predictions))
 
 
 if __name__ == '__main__':
-    train()
+    preprocessors: Optional[List[DataPreprocessor]] = None
+
+    if cfg.TASK_TYPE == cfg.TaskType.SMS:
+        preprocessors: List[SmsDataPreprocessor] = [SmsDataPreprocessor()]
+    elif cfg.TASK_TYPE == cfg.TaskType.TWEET:
+        preprocessors: List[TweetDataPreprocessor] = [TweetDataPreprocessor('data/tweets_train.csv'),
+                                                      TweetDataPreprocessor('data/tweets_test.csv')]
+
+    assert preprocessors is not None
+
+    [preprocessor.run() for preprocessor in preprocessors]
+
+    training_data: Optional[np.ndarray] = None
+    test_data: Optional[np.ndarray] = None
+    if len(preprocessors) == 1:
+        training_data: np.ndarray = preprocessors[0].tokenize()
+    elif len(preprocessors) == 2:
+        training_data: np.ndarray = preprocessors[0].tokenize()
+        test_data: np.ndarray = preprocessors[1].tokenize()
+
+    assert training_data is not None
+
+    datasets = None
+
+    if cfg.TASK_TYPE == cfg.TaskType.SMS:
+        datasets = create_double_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
+    elif cfg.TASK_TYPE == cfg.TaskType.TWEET:
+        train_and_val = create_single_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
+        test = create_dataset(test_data, preprocessors[1].target_labels)
+        datasets = train_and_val + (test,)
+
+    assert datasets is not None
+
+    train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
+
+    embedding_matrix: np.ndarray = preprocessors[0].make_embedding_matrix(
+        'data/glove.6B.100d.txt',
+        cfg.EMBEDDING_VECTOR_SIZE
+    )
+
+    train(embedding_matrix, train_dl, val_dl)
+    test(embedding_matrix, datasets[2][:][0], datasets[2][:][1])

@@ -5,6 +5,7 @@ from enum import Enum
 
 class TaskType(Enum):
     SMS = 'sms'
+    TWEET = 'tweet'
 
 
 class NetworkType(Enum):
@@ -16,7 +17,7 @@ RESULTS_FOLDER = 'results'
 CHECKPOINTS_FOLDER = 'checkpoints'
 CHECKPOINT_NAME = 'checkpoint.pth'
 
-TASK_TYPE = TaskType.SMS
+TASK_TYPE = TaskType.TWEET
 NETWORK_TYPE = NetworkType.LSTM
 TRAIN_DATA_RATIO = 0.8
 BATCH_SIZE = 32
