@@ -16,7 +16,7 @@ def save_checkpoint(
         'model': model.state_dict(),
         'optimizer': optimizer.state_dict()
     }
-    print(f'==> Saving checkpoint { os.path.join(directory_path, filename) }')
+    print(f'\n==> Saving checkpoint { os.path.join(directory_path, filename) }')
     torch.save(checkpoint, os.path.join(directory_path, filename))
 
 
@@ -29,7 +29,7 @@ def load_checkpoint(
 ) -> None:
     if not directory_exists(directory_path):
         return
-    print(f'==> Loading checkpoint { os.path.join(directory_path, filename) }')
+    print(f'\n==> Loading checkpoint { os.path.join(directory_path, filename) }')
     checkpoint = torch.load(
         os.path.join(directory_path, filename),
         map_location=config.DEVICE
@@ -48,7 +48,7 @@ def load_model_state_dict(
 ) -> None:
     if not directory_exists(directory_path):
         return
-    print(f'==> Loading state_dict {os.path.join(directory_path, filename)}')
+    print(f'\n==> Loading state_dict {os.path.join(directory_path, filename)}')
     checkpoint = torch.load(
         os.path.join(directory_path, filename),
         map_location=config.DEVICE

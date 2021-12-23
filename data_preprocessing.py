@@ -159,7 +159,7 @@ class DataPreprocessor:
         padded_sequences: np.ndarray = pad_sequences(
             self.tokenizer.texts_to_sequences(self.training_data),
             max_len,
-            padding='post'
+            padding='pre'
         )
 
         return padded_sequences

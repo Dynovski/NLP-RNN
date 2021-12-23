@@ -46,7 +46,6 @@ class Analyzer:
         plt.savefig(path)
 
 
-
 def analyze() -> None:
     preprocessor = SmsDataPreprocessor()
     preprocessor.run()

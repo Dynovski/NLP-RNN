@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch import tensor, float32
 from numpy import ndarray
 
+import config
 from config import DEVICE
 
 
@@ -46,17 +47,17 @@ class LSTMModel(nn.Module):
             nn.Linear(256, n_output_classes)
         )
 
-    def forward(self, batch):
-        batch_size = batch.size(0)
-        hidden_state = (
-            torch.zeros(self.n_lstm_layers * self.multiplier, batch_size, self.hidden_state_size).to(DEVICE),
-            torch.zeros(self.n_lstm_layers * self.multiplier, batch_size, self.hidden_state_size).to(DEVICE)
-        )
+        if not config.IS_MULTICLASS:
+            self.sigmoid = nn.Sigmoid()
 
+    def forward(self, batch):
         batch = batch.long()
         out = self.embedding(batch)
-        out, _ = self.lstm(out, hidden_state)
+        out, _ = self.lstm(out)
         out = out[:, -1, :]
         out = self.dense(out)
+
+        if not config.IS_MULTICLASS:
+            out = self.sigmoid(out)
 
         return out
