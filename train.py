@@ -76,7 +76,7 @@ def train(
             scaler.step(optimizer)
             scaler.update()
 
-            if index % 19 == 0:
+            if index % cfg.ITERS_TO_VALIDATE == 0:
                 val_losses = []
                 num_val_correct = 0
                 model.eval()
@@ -153,7 +153,7 @@ def test(
     cm = metrics.confusion_matrix(labels, predictions)
     print(cm)
 
-    Analyzer.plot_confusion_matrix(cm, ['Ham', 'Spam'], 'figures/confusionMatrix.png')
+    # Analyzer.plot_confusion_matrix(cm, ['Ham', 'Spam'], 'figures/confusionMatrix.png')
 
     print("\nAccuracy: {:.3f}%".format(metrics.accuracy_score(labels, predictions) * 100))
     print("F1-score: {:.3f}%".format(metrics.f1_score(labels, predictions) * 100))
@@ -189,9 +189,13 @@ if __name__ == '__main__':
     if len(preprocessors) == 1:
         datasets = create_double_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
     elif len(preprocessors) == 2:
-        train_and_val = create_single_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
-        test = create_dataset(test_data, preprocessors[1].target_labels)
-        datasets = train_and_val + (test,)
+        train_and_val_datasets = create_single_split_dataset(
+            training_data,
+            preprocessors[0].target_labels,
+            cfg.TRAIN_DATA_RATIO
+        )
+        test_dataset = create_dataset(test_data, preprocessors[1].target_labels)
+        datasets = train_and_val_datasets + (test_dataset,)
 
     train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
 

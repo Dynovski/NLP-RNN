@@ -237,7 +237,7 @@ class TweetDataPreprocessor(DataPreprocessor):
     def dataset_specific_preprocessing(self) -> None:
         self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(clean_tweets_data)
 
-    def run(self, *, stem: bool = False, encode: bool = False) -> None:
+    def run(self, *, stem: bool = False, encode: bool = True) -> None:
         self.dataset_specific_preprocessing()
         if stem:
             self.stem()
@@ -259,7 +259,7 @@ class NewsDataPreprocessor(DataPreprocessor):
     def dataset_specific_preprocessing(self) -> None:
         self.data[self.MAIN_DATA_COLUMN] = self.data[self.MAIN_DATA_COLUMN].apply(clean_news_data)
 
-    def run(self, *, stem: bool = False, encode: bool = False) -> None:
+    def run(self, *, stem: bool = False, encode: bool = True) -> None:
         self.dataset_specific_preprocessing()
         if stem:
             self.stem()
