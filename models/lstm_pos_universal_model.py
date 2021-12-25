@@ -35,9 +35,23 @@ class LSTMPosUniversalModel(nn.Module):
         self.embedding.weight = nn.Parameter(tensor(embedding_weights_matrix, dtype=float32))
         self.embedding.weight.requires_grad = True
 
-        self.cells_dict: Dict[str, nn.LSTMCell] = {}
-        for key in self.tagger.all_tags:
-            self.cells_dict[key] = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_empty = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_adj = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_adp = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_adv = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_conj = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_det = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_noun = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_num = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_prt = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_pron = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_verb = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_other = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+        self.lstm_cell_x = nn.LSTMCell(embedding_vector_size, hidden_state_size)
+
+        # self.cells_dict: Dict[str, nn.LSTMCell] = {}
+        # for key in self.tagger.all_tags:
+        #     self.cells_dict[key] = nn.LSTMCell(embedding_vector_size, hidden_state_size)
 
         self.dense = nn.Sequential(
             nn.Linear(hidden_state_size, 256),
@@ -64,10 +78,32 @@ class LSTMPosUniversalModel(nn.Module):
         for i in range(self.longest_sequence):
             tag = tag_list[i][1]
             cell_input = out[:, i, :]
-            hidden_state = self.cells_dict.get(tag)(
-                cell_input,
-                hidden_state
-            )
+            if tag == 'EMPTY':
+                hidden_state = self.lstm_cell_empty(cell_input, hidden_state)
+            elif tag == 'ADJ':
+                hidden_state = self.lstm_cell_adj(cell_input, hidden_state)
+            elif tag == 'ADP':
+                hidden_state = self.lstm_cell_adp(cell_input, hidden_state)
+            elif tag == 'ADV':
+                hidden_state = self.lstm_cell_adv(cell_input, hidden_state)
+            elif tag == 'CONJ':
+                hidden_state = self.lstm_cell_conj(cell_input, hidden_state)
+            elif tag == 'DET':
+                hidden_state = self.lstm_cell_det(cell_input, hidden_state)
+            elif tag == 'NOUN':
+                hidden_state = self.lstm_cell_noun(cell_input, hidden_state)
+            elif tag == 'NUM':
+                hidden_state = self.lstm_cell_num(cell_input, hidden_state)
+            elif tag == 'PRT':
+                hidden_state = self.lstm_cell_prt(cell_input, hidden_state)
+            elif tag == 'PRON':
+                hidden_state = self.lstm_cell_pron(cell_input, hidden_state)
+            elif tag == 'VERB':
+                hidden_state = self.lstm_cell_verb(cell_input, hidden_state)
+            elif tag == '.':
+                hidden_state = self.lstm_cell_other(cell_input, hidden_state)
+            elif tag == 'X':
+                hidden_state = self.lstm_cell_x(cell_input, hidden_state)
 
         out = hidden_state[0]
         out = self.dense(out)

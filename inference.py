@@ -333,7 +333,7 @@ if __name__ == '__main__':
         cfg.EMBEDDING_VECTOR_SIZE
     )
 
-    # Trainer(embedding_matrix, train_dl, val_dl, preprocessors[0].tokenizer, training_data.shape[1], test_dl).run()
+    Trainer(embedding_matrix, train_dl, val_dl, preprocessors[0].tokenizer, training_data.shape[1], test_dl).run()
     Tester(
         embedding_matrix,
         datasets[2][:][0],
