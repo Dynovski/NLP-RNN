@@ -45,14 +45,20 @@ class UniversalTagger(Tagger):
 
     def tag_tokens(self, tokens: List[str]):
         pos_tags = pos_tag(tokens, tagset='universal')
-        return [(token, self._map_tag(tag)) for (token, tag) in pos_tags]
+        result_tags = []
+        for i, token in enumerate(tokens):
+            if token == '':
+                result_tags.append((token, '-'))
+            else:
+                result_tags.append(pos_tags[i])
+        return [(token, self._map_tag(tag)) for (token, tag) in result_tags]
 
     @classmethod
     def _map_tag(cls, tag: str):
-        if tag in ['ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN',
-                   'NUM', 'PRT', 'PRON', 'VERB', '.', 'X']:
-            return tag
-        elif tag == '-':
+        if tag == '-':
             return 'EMPTY'
+        elif tag in ['ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN',
+                     'NUM', 'PRT', 'PRON', 'VERB', '.', 'X']:
+            return tag
         else:
-            raise NotImplementedError('Unexpected tag!')
+            raise NotImplementedError(f'Unexpected tag! {tag}')

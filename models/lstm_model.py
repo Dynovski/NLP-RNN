@@ -1,11 +1,9 @@
-import torch
 import torch.nn as nn
 
 from torch import tensor, float32
 from numpy import ndarray
 
 import config
-from config import DEVICE
 
 
 class LSTMModel(nn.Module):
@@ -60,4 +58,4 @@ class LSTMModel(nn.Module):
         if not config.IS_MULTICLASS:
             out = self.sigmoid(out)
 
-        return out
+        return out.squeeze()
