@@ -6,7 +6,7 @@ from numpy import ndarray
 import config
 
 from preprocessing.tagging import UniversalTagger
-from index_mapper import IndexMapper
+from dataprocessing.index_mapper import IndexMapper
 
 
 # For this to work batch size must be set to 1

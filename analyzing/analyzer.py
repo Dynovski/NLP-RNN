@@ -3,7 +3,7 @@ import seaborn as sns
 
 from mlxtend.plotting import plot_confusion_matrix
 
-from data_preprocessing import SmsDataPreprocessor
+from preprocessing.data_preprocessing import SmsDataPreprocessor
 
 
 class Analyzer:

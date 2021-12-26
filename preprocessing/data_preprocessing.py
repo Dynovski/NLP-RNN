@@ -226,7 +226,7 @@ class SmsDataPreprocessor(DataPreprocessor):
 class TweetDataPreprocessor(DataPreprocessor):
     def __init__(self):
         super(TweetDataPreprocessor, self).__init__(
-            path='data/tweets_train.csv',
+            path='../data/tweets_train.csv',
             encoding='latin-1',
             columns_to_drop=['id', 'keyword', 'location'],
             attribute_names=['message', 'class'],

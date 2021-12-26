@@ -12,15 +12,15 @@ class TaskType(Enum):
 class NetworkType(Enum):
     LSTM = 'lstm'
     LSTM_UNIVERSAL = 'lstm_universal'
+    LSTM_PENN = 'lstm_penn'
 
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-RESULTS_FOLDER = 'results'
 CHECKPOINTS_FOLDER = 'checkpoints'
-CHECKPOINT_NAME = 'final.pth'
+CHECKPOINT_NAME = 'checkpoint.pth'
 
 TASK_TYPE = TaskType.SMS
-NETWORK_TYPE = NetworkType.LSTM_UNIVERSAL
+NETWORK_TYPE = NetworkType.LSTM_PENN
 IS_MULTICLASS = False
 TRAIN_DATA_RATIO = 0.8
 BATCH_SIZE = 1
@@ -31,7 +31,7 @@ OUTPUT_CLASSES = 1
 VALIDATE_EVERY = 300
 CLIP_VALUE = 5
 
-EPOCHS = 1
+EPOCHS = 2
 LEARNING_RATE = 0.005
 LOAD_MODEL = False
 SAVE_CHECKPOINTS = True

@@ -16,12 +16,13 @@ import config as cfg
 
 from models.lstm_model import LSTMModel
 from models.lstm_pos_universal_model import LSTMPosUniversalModel
-from data_preprocessing import DataPreprocessor, SmsDataPreprocessor, TweetDataPreprocessor, NewsDataPreprocessor
+from models.lstm_pos_penn_model import LSTMPosPennModel
+from preprocessing.data_preprocessing import DataPreprocessor, SmsDataPreprocessor, TweetDataPreprocessor, NewsDataPreprocessor
 from dataprocessing.datasets import create_double_split_dataset, create_dataset, create_single_split_dataset
 from dataprocessing.dataloaders import create_data_loader
 from models.utils import save_checkpoint, load_checkpoint, load_model_state_dict
 from analyzing.analyzer import Analyzer
-from index_mapper import IndexMapper
+from dataprocessing.index_mapper import IndexMapper
 
 
 class Trainer:
@@ -52,6 +53,16 @@ class Trainer:
             ).to(cfg.DEVICE)
         elif cfg.NETWORK_TYPE == cfg.NETWORK_TYPE.LSTM_UNIVERSAL:
             self.model: LSTMPosUniversalModel = LSTMPosUniversalModel(
+                self.embedding_weights.shape[0],
+                cfg.OUTPUT_CLASSES,
+                cfg.EMBEDDING_VECTOR_SIZE,
+                self.embedding_weights,
+                cfg.HIDDEN_STATE_SIZE,
+                IndexMapper(self.tokenizer),
+                self.longest_sequence
+            ).to(cfg.DEVICE)
+        elif cfg.NETWORK_TYPE == cfg.NETWORK_TYPE.LSTM_PENN:
+            self.model: LSTMPosPennModel = LSTMPosPennModel(
                 self.embedding_weights.shape[0],
                 cfg.OUTPUT_CLASSES,
                 cfg.EMBEDDING_VECTOR_SIZE,
@@ -207,6 +218,16 @@ class Tester:
                 IndexMapper(self.tokenizer),
                 self.longest_sequence
             ).to(cfg.DEVICE)
+        elif cfg.NETWORK_TYPE == cfg.NETWORK_TYPE.LSTM_PENN:
+            self.model: LSTMPosPennModel = LSTMPosPennModel(
+                self.embedding_weights.shape[0],
+                cfg.OUTPUT_CLASSES,
+                cfg.EMBEDDING_VECTOR_SIZE,
+                self.embedding_weights,
+                cfg.HIDDEN_STATE_SIZE,
+                IndexMapper(self.tokenizer),
+                self.longest_sequence
+            ).to(cfg.DEVICE)
 
     def _load_checkpoint(self):
         load_model_state_dict(
@@ -299,4 +320,4 @@ if __name__ == '__main__':
         datasets[2][:][1],
         preprocessors[0].tokenizer,
         training_data.shape[1]
-    ).run('figures/smsUniversalConfusionMatrix', ['Ham', 'Spam'])
+    ).run('figures/smsPennConfusionMatrix', ['Ham', 'Spam'])
