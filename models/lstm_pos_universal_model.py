@@ -2,7 +2,6 @@ import torch.nn as nn
 
 from torch import tensor, float32, zeros
 from numpy import ndarray
-from typing import Dict
 
 import config
 
@@ -48,10 +47,6 @@ class LSTMPosUniversalModel(nn.Module):
         self.lstm_cell_verb = nn.LSTMCell(embedding_vector_size, hidden_state_size)
         self.lstm_cell_other = nn.LSTMCell(embedding_vector_size, hidden_state_size)
         self.lstm_cell_x = nn.LSTMCell(embedding_vector_size, hidden_state_size)
-
-        # self.cells_dict: Dict[str, nn.LSTMCell] = {}
-        # for key in self.tagger.all_tags:
-        #     self.cells_dict[key] = nn.LSTMCell(embedding_vector_size, hidden_state_size)
 
         self.dense = nn.Sequential(
             nn.Linear(hidden_state_size, 256),
@@ -110,7 +105,5 @@ class LSTMPosUniversalModel(nn.Module):
 
         if not config.IS_MULTICLASS:
             out = self.sigmoid(out)
-
-        # import ipdb; ipdb.set_trace()
 
         return out.squeeze(1)

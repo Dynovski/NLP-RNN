@@ -18,19 +18,25 @@ class FullTagger(Tagger):
 
     def tag_tokens(self, tokens: List[str]):
         pos_tags = pos_tag(tokens)
-        return [(token, self._map_tag(tag)) for (token, tag) in pos_tags]
+        result_tags = []
+        for tag in pos_tags:
+            if tag[0] == '':
+                result_tags.append((tag[0], 'EMPTY'))
+            elif tag[1] in ['RB', 'RBR', 'RBS']:
+                result_tags.append((tag[0], 'RB'))
+            else:
+                result_tags.append(tag)
+        return result_tags
 
     @classmethod
     def _map_tag(cls, tag: str):
-        if tag in ['VBN', 'VBZ', 'VBG', 'VBP', 'VBD', 'MD', 'NN',
+        if tag in ['VBN', 'VBZ', 'VBG', 'VBP', 'VBD', 'MD', 'NN', 'EMPTY'
                    'NNPS', 'NNP', 'NNS', 'JJS', 'JJR', 'JJ', 'CD',
                    'IN', 'PDT', 'CC', 'EX', 'POS', 'RP', 'FW', 'DT',
                    'UH', 'TO', 'PRP', 'PRP$', '$', 'WP$', 'WDT', 'WRB']:
             return tag
         elif tag in ['RB', 'RBR', 'RBS']:
             return 'RB'
-        elif tag == '-':
-            return 'EMPTY'
         else:
             return 'OTHER'
 
@@ -46,19 +52,9 @@ class UniversalTagger(Tagger):
     def tag_tokens(self, tokens: List[str]):
         pos_tags = pos_tag(tokens, tagset='universal')
         result_tags = []
-        for i, token in enumerate(tokens):
-            if token == '':
-                result_tags.append((token, '-'))
+        for tag in pos_tags:
+            if tag[0] == '':
+                result_tags.append((tag[0], 'EMPTY'))
             else:
-                result_tags.append(pos_tags[i])
-        return [(token, self._map_tag(tag)) for (token, tag) in result_tags]
-
-    @classmethod
-    def _map_tag(cls, tag: str):
-        if tag == '-':
-            return 'EMPTY'
-        elif tag in ['ADJ', 'ADP', 'ADV', 'CONJ', 'DET', 'NOUN',
-                     'NUM', 'PRT', 'PRON', 'VERB', '.', 'X']:
-            return tag
-        else:
-            raise NotImplementedError(f'Unexpected tag! {tag}')
+                result_tags.append(tag)
+        return result_tags

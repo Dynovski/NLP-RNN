@@ -15,9 +15,3 @@ class IndexMapper:
         for index in indices:
             word_list.append(self.index_to_word(index))
         return word_list
-
-    def batch_of_indices_to_words(self, batch):
-        word_batch = []
-        for row in batch:
-            word_batch.append(self.indices_to_words(row))
-        return word_batch

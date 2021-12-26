@@ -8,6 +8,8 @@ from typing import Optional, List
 from torch.optim import Adam
 from torch import round
 from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.utils.data import DataLoader
+from keras.preprocessing.text import Tokenizer
 
 import config
 import config as cfg
@@ -26,19 +28,17 @@ class Trainer:
     def __init__(
             self,
             embedding_weights: np.ndarray,
-            train_dl: 'torch.utils.data.Dataloader',
-            val_dl: 'torch.utils.data.Dataloader',
-            tokenizer,
+            train_dataloader: DataLoader,
+            validation_dataloader: DataLoader,
+            tokenizer: Tokenizer,
             longest_sequence: int,
-            test_dl
     ):
         self.embedding_weights: np.ndarray = embedding_weights
-        self.train_dl: 'torch.utils.data.Dataloader' = train_dl
-        self.val_dl: 'torch.utils.data.Dataloader' = val_dl
-        self.tokenizer = tokenizer
+        self.train_dl: DataLoader = train_dataloader
+        self.val_dl: DataLoader = validation_dataloader
+        self.tokenizer: Tokenizer = tokenizer
         self.longest_sequence: int = longest_sequence
         self.is_multiclass: bool = cfg.IS_MULTICLASS
-        self.test_dl = test_dl
 
     def _choose_model(self):
         if cfg.NETWORK_TYPE == cfg.NetworkType.LSTM:
@@ -91,8 +91,10 @@ class Trainer:
         loss_values: List[torch.Tensor] = []
         self.model.eval()
         num_correct: int = 0
+        instances: int = 0
         for inputs, labels in self.val_dl:
             inputs, labels = inputs.to(cfg.DEVICE), labels.to(cfg.DEVICE)
+            instances += inputs.shape[0]
             output = self.model(inputs)
             loss = self.criterion(output, labels.long() if cfg.IS_MULTICLASS else labels.float())
             loss_values.append(loss.item())
@@ -101,31 +103,10 @@ class Trainer:
                 predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(1)
             else:
                 predictions: torch.Tensor = round(output)
-            # import ipdb; ipdb.set_trace()
             num_correct += (predictions == labels).cpu().sum().item()
 
         self.model.train()
-        return np.mean(loss_values), num_correct / len(self.val_dl.dataset)
-
-    def test(self):
-        loss_values: List[torch.Tensor] = []
-        self.model.eval()
-        num_correct: int = 0
-        for inputs, labels in self.test_dl:
-            inputs, labels = inputs.to(cfg.DEVICE), labels.to(cfg.DEVICE)
-            output = self.model(inputs)
-            loss = self.criterion(output, labels.long() if cfg.IS_MULTICLASS else labels.float())
-            loss_values.append(loss.item())
-            predictions: Optional[torch.Tensor] = None
-            if self.is_multiclass:
-                predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(1)
-            else:
-                predictions: torch.Tensor = round(output)
-            # import ipdb; ipdb.set_trace()
-            num_correct += (predictions == labels).cpu().sum().item()
-
-        self.model.train()
-        return np.mean(loss_values), num_correct / len(self.test_dl.dataset)
+        return np.mean(loss_values), num_correct / instances
 
     def run(self):
         self._choose_model()
@@ -141,13 +122,14 @@ class Trainer:
         for epoch in range(cfg.EPOCHS):
             loop = tqdm(self.train_dl, leave=True)
             train_num_correct = 0
+            instances: int = 0
             val_l = []
             train_l = []
             steps_l = []
 
             for index, (inputs, labels) in enumerate(loop):
                 inputs, labels = inputs.to(cfg.DEVICE), labels.to(cfg.DEVICE)
-
+                instances += inputs.shape[0]
                 output = self.model(inputs)
                 loss = self.criterion(output, labels.long() if cfg.IS_MULTICLASS else labels.float())
 
@@ -186,9 +168,7 @@ class Trainer:
                     predictions: torch.Tensor = round(output)
                 train_num_correct += (predictions == labels).cpu().sum().item()
 
-            train_acc = train_num_correct / len(train_dl.dataset)
-            print(self.test())
-        save_checkpoint(self.model, self.optimizer, 'final.pth', cfg.CHECKPOINTS_FOLDER)
+            train_acc = train_num_correct / instances
 
 
 class Tester:
@@ -197,17 +177,15 @@ class Tester:
             embedding_weights: np.ndarray,
             data: torch.Tensor,
             labels: torch.Tensor,
-            tokenizer,
+            tokenizer: Tokenizer,
             longest_sequence: int,
-            test_dl
     ):
         self.embedding_weights: np.ndarray = embedding_weights
         self.data: torch.Tensor = data.to(cfg.DEVICE)
         self.labels: torch.Tensor = labels.to(cfg.DEVICE)
-        self.tokenizer = tokenizer
+        self.tokenizer: Tokenizer = tokenizer
         self.longest_sequence: int = longest_sequence
         self.is_multiclass: bool = cfg.IS_MULTICLASS
-        self.test_dl = test_dl
 
     def _choose_model(self):
         if cfg.NETWORK_TYPE == cfg.NetworkType.LSTM:
@@ -250,32 +228,14 @@ class Tester:
             predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(1)
         else:
             predictions: torch.Tensor = round(output)
-        # import ipdb; ipdb.set_trace()
         return predictions.cpu().detach().numpy()
 
-    def test(self):
-        self.model.eval()
-        num_correct: int = 0
-        for inputs, labels in self.test_dl:
-            inputs, labels = inputs.to(cfg.DEVICE), labels.to(cfg.DEVICE)
-            output = self.model(inputs)
-            predictions: Optional[torch.Tensor] = None
-            if self.is_multiclass:
-                predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(1)
-            else:
-                predictions: torch.Tensor = round(output)
-            # import ipdb; ipdb.set_trace()
-            num_correct += (predictions == labels).cpu().sum().item()
-        import ipdb; ipdb.set_trace()
-
-        return num_correct / len(self.test_dl.dataset)
-
-    def _print_metrics(self, predictions):
+    def _print_metrics(self, predictions: np.ndarray, path: str, labels: List[str]):
         print('\nConfusion matrix:')
         cm = metrics.confusion_matrix(self.labels, predictions)
         print(cm)
 
-        # Analyzer.plot_confusion_matrix(cm, ['Ham', 'Spam'], 'figures/confusionMatrix.png')
+        Analyzer.plot_confusion_matrix(cm, labels, path)
 
         print("\nAccuracy: {:.3f}%".format(metrics.accuracy_score(self.labels, predictions) * 100))
         print("F1-score: {:.3f}%".format(metrics.f1_score(self.labels, predictions) * 100))
@@ -284,12 +244,11 @@ class Tester:
         print("-" * 53)
         print(metrics.classification_report(self.labels, predictions))
 
-    def run(self):
+    def run(self, path: str, labels: List[str]):
         self._choose_model()
         self._load_checkpoint()
-        print(self.test()*100, '% acc')
         predictions = self._predict()
-        self._print_metrics(predictions)
+        self._print_metrics(predictions, path, labels)
 
 
 if __name__ == '__main__':
@@ -333,12 +292,11 @@ if __name__ == '__main__':
         cfg.EMBEDDING_VECTOR_SIZE
     )
 
-    Trainer(embedding_matrix, train_dl, val_dl, preprocessors[0].tokenizer, training_data.shape[1], test_dl).run()
+    Trainer(embedding_matrix, train_dl, val_dl, preprocessors[0].tokenizer, training_data.shape[1]).run()
     Tester(
         embedding_matrix,
         datasets[2][:][0],
         datasets[2][:][1],
         preprocessors[0].tokenizer,
-        training_data.shape[1],
-        test_dl
-    ).run()
+        training_data.shape[1]
+    ).run('figures/smsUniversalConfusionMatrix', ['Ham', 'Spam'])
