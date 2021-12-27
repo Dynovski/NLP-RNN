@@ -51,7 +51,7 @@ def analyze():
             visualizer.create_wordcloud(
                 f'figures/{wc_filenames[i]}_{values_to_visualize[i][j]}',
                 'class',
-                data_attributes[i],
+                preprocessors_list[i][0].MAIN_DATA_COLUMN,
                 values_to_visualize[i][j]
             )
 
