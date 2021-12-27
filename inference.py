@@ -11,7 +11,6 @@ from torch.nn.functional import binary_cross_entropy_with_logits
 from torch.utils.data import DataLoader
 from keras.preprocessing.text import Tokenizer
 
-import config
 import config as cfg
 
 from models.lstm_model import LSTMModel
@@ -33,6 +32,7 @@ class Trainer:
             validation_dataloader: DataLoader,
             tokenizer: Tokenizer,
             longest_sequence: int,
+            network_type: cfg.NetworkType = cfg.NETWORK_TYPE
     ):
         self.embedding_weights: np.ndarray = embedding_weights
         self.train_dl: DataLoader = train_dataloader
@@ -40,9 +40,10 @@ class Trainer:
         self.tokenizer: Tokenizer = tokenizer
         self.longest_sequence: int = longest_sequence
         self.is_multiclass: bool = cfg.IS_MULTICLASS
+        self.network_type: cfg.NetworkType = network_type
 
     def _choose_model(self):
-        if cfg.NETWORK_TYPE == cfg.NetworkType.LSTM:
+        if self.network_type == cfg.NetworkType.LSTM:
             self.model: LSTMModel = LSTMModel(
                 self.embedding_weights.shape[0],
                 cfg.OUTPUT_CLASSES,
@@ -51,7 +52,7 @@ class Trainer:
                 cfg.HIDDEN_STATE_SIZE,
                 cfg.NUM_RECURRENT_LAYERS
             ).to(cfg.DEVICE)
-        elif cfg.NETWORK_TYPE == cfg.NETWORK_TYPE.LSTM_UNIVERSAL:
+        elif self.network_type == cfg.NETWORK_TYPE.LSTM_UNIVERSAL:
             self.model: LSTMPosUniversalModel = LSTMPosUniversalModel(
                 self.embedding_weights.shape[0],
                 cfg.OUTPUT_CLASSES,
@@ -61,7 +62,7 @@ class Trainer:
                 IndexMapper(self.tokenizer),
                 self.longest_sequence
             ).to(cfg.DEVICE)
-        elif cfg.NETWORK_TYPE == cfg.NETWORK_TYPE.LSTM_PENN:
+        elif self.network_type == cfg.NETWORK_TYPE.LSTM_PENN:
             self.model: LSTMPosPennModel = LSTMPosPennModel(
                 self.embedding_weights.shape[0],
                 cfg.OUTPUT_CLASSES,
@@ -190,6 +191,7 @@ class Tester:
             labels: torch.Tensor,
             tokenizer: Tokenizer,
             longest_sequence: int,
+            network_type: cfg.NetworkType = cfg.NETWORK_TYPE
     ):
         self.embedding_weights: np.ndarray = embedding_weights
         self.data: torch.Tensor = data.to(cfg.DEVICE)
@@ -197,9 +199,10 @@ class Tester:
         self.tokenizer: Tokenizer = tokenizer
         self.longest_sequence: int = longest_sequence
         self.is_multiclass: bool = cfg.IS_MULTICLASS
+        self.network_type: cfg.NetworkType = network_type
 
     def _choose_model(self):
-        if cfg.NETWORK_TYPE == cfg.NetworkType.LSTM:
+        if self.network_type == cfg.NetworkType.LSTM:
             self.model: LSTMModel = LSTMModel(
                 self.embedding_weights.shape[0],
                 cfg.OUTPUT_CLASSES,
@@ -208,7 +211,7 @@ class Tester:
                 cfg.HIDDEN_STATE_SIZE,
                 cfg.NUM_RECURRENT_LAYERS
             ).to(cfg.DEVICE)
-        elif cfg.NETWORK_TYPE == cfg.NETWORK_TYPE.LSTM_UNIVERSAL:
+        elif self.network_type == cfg.NETWORK_TYPE.LSTM_UNIVERSAL:
             self.model: LSTMPosUniversalModel = LSTMPosUniversalModel(
                 self.embedding_weights.shape[0],
                 cfg.OUTPUT_CLASSES,
@@ -218,7 +221,7 @@ class Tester:
                 IndexMapper(self.tokenizer),
                 self.longest_sequence
             ).to(cfg.DEVICE)
-        elif cfg.NETWORK_TYPE == cfg.NETWORK_TYPE.LSTM_PENN:
+        elif self.network_type == cfg.NETWORK_TYPE.LSTM_PENN:
             self.model: LSTMPosPennModel = LSTMPosPennModel(
                 self.embedding_weights.shape[0],
                 cfg.OUTPUT_CLASSES,
@@ -239,7 +242,7 @@ class Tester:
     def _predict(self):
         self.model.eval()
         output = None
-        if config.BATCH_SIZE == 1:
+        if cfg.BATCH_SIZE == 1:
             outputs = tuple(self.model(data.unsqueeze(0)) for data in self.data)
             output = torch.stack(outputs, dim=0)
         else:
@@ -265,11 +268,20 @@ class Tester:
         print("-" * 53)
         print(metrics.classification_report(self.labels, predictions))
 
+    def get_metrics(self, predictions: np.ndarray):
+        return (
+            metrics.accuracy_score(self.labels, predictions),
+            metrics.f1_score(self.labels, predictions),
+            metrics.precision_score(self.labels, predictions),
+            metrics.recall_score(self.labels, predictions)
+        )
+
     def run(self, path: str, labels: List[str]):
         self._choose_model()
         self._load_checkpoint()
         predictions = self._predict()
         self._print_metrics(predictions, path, labels)
+        return self.get_metrics(predictions)
 
 
 if __name__ == '__main__':

@@ -32,7 +32,7 @@ class LSTMPosUniversalModel(nn.Module):
 
         self.embedding = nn.Embedding(n_unique_words, embedding_vector_size)
         self.embedding.weight = nn.Parameter(tensor(embedding_weights_matrix, dtype=float32))
-        self.embedding.weight.requires_grad = True
+        self.embedding.weight.requires_grad = False
 
         self.lstm_cell_empty = nn.LSTMCell(embedding_vector_size, hidden_state_size)
         self.lstm_cell_adj = nn.LSTMCell(embedding_vector_size, hidden_state_size)

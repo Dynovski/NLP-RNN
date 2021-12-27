@@ -15,13 +15,17 @@ def clean_sms_data(text: str) -> str:
     text = re.sub(r"&lt;", "<", text)
     text = re.sub(r"&amp;", "&", text)
 
+    text = re.sub(r"gt;", ">", text)
+    text = re.sub(r"lt;", "<", text)
+    text = re.sub(r"amp;", "&", text)
+
     text = text.lower()
     text = re.sub(r'\[.*?\]', '', text)
     text = re.sub(r'https?://\S+|www\.\S+', '', text)
     text = re.sub(r'<.*?>+', '', text)
     text = re.sub(r'\n', ' ', text)
     text = re.sub(r'\w*\d\w*', '', text)
-    text = re.sub(r'[^a-zA-Z0-9]', ' ', text)
+    text = re.sub(r'[^a-zA-Z]', ' ', text)
     text = re.sub(r'/\s\s+/g', ' ', text)
     text = text.strip()
 
