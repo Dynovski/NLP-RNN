@@ -126,9 +126,9 @@ def main(path: str, data_labels: List[str]):
 
 
 if __name__ == '__main__':
-    analyze()
-    # results = main('figures/smsConfusionMatrix.png', ['Ham', 'Spam'])
-    # print("\nAverage accuracy: {:.3f}%".format(results[0] * 100))
-    # print("Average F1-score: {:.3f}%".format(results[1] * 100))
-    # print("Average precision: {:.3f}%".format(results[2] * 100))
-    # print("Average recall: {:.3f}%".format(results[3] * 100))
+    # analyze()
+    results = main('figures/smsConfusionMatrix.png', ['Ham', 'Spam'])
+    print("\nAverage accuracy: {:.3f}%".format(results[0] * 100))
+    print("Average F1-score: {:.3f}%".format(results[1] * 100))
+    print("Average precision: {:.3f}%".format(results[2] * 100))
+    print("Average recall: {:.3f}%".format(results[3] * 100))
