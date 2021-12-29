@@ -17,10 +17,7 @@ def analyze():
     preprocessors_list: List[List[DataPreprocessor]] = [
         [SmsDataPreprocessor()],
         [TweetDataPreprocessor()],
-        [
-            NewsDataPreprocessor('data/news_train.csv'),
-            NewsDataPreprocessor('data/news_test.csv')
-        ]
+        [NewsDataPreprocessor()]
     ]
 
     # Run them all
@@ -89,13 +86,13 @@ def main(path: str, data_labels: List[str]):
     precision: float = 0.0
     recall: float = 0.0
     for _ in range(5):
-        # Trainer(
-        #     embedding_matrix,
-        #     train_dl,
-        #     val_dl,
-        #     preprocessor.tokenizer,
-        #     training_data.shape[1]
-        # ).run()
+        Trainer(
+            embedding_matrix,
+            train_dl,
+            val_dl,
+            preprocessor.tokenizer,
+            training_data.shape[1]
+        ).run()
 
         results = Tester(
             embedding_matrix,
@@ -103,7 +100,7 @@ def main(path: str, data_labels: List[str]):
             datasets[2][:][1],
             preprocessor.tokenizer,
             training_data.shape[1]
-        ).run(path, data_labels)
+        ).run(data_labels)
 
         accuracy += results[0]
         f1 += results[1]
@@ -115,7 +112,7 @@ def main(path: str, data_labels: List[str]):
 
 if __name__ == '__main__':
     # analyze()
-    results = main('figures/newsConfusionMatrix.png', ['World', 'Sports', 'Business', 'Sct/Tech'])
+    results = main('figures/newsConfusionMatrix.png', ['Ham', 'Spam'])
     print("\nAverage accuracy: {:.3f}%".format(results[0] * 100))
     print("Average F1-score: {:.3f}%".format(results[1] * 100))
     print("Average precision: {:.3f}%".format(results[2] * 100))

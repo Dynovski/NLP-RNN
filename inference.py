@@ -160,7 +160,7 @@ class Trainer:
                         val_accuracy=val_acc
                     )
 
-                    val_l.append(val_loss)
+                    val_l.append(val_loss.item())
                     train_l.append(loss.item())
                     steps_l.append(index)
 
@@ -181,6 +181,7 @@ class Trainer:
                 train_num_correct += (predictions == labels).cpu().sum().item()
 
             train_acc = train_num_correct / instances
+            Analyzer.plot_losses(train_l, val_l, steps_l)
 
 
 class Tester:
@@ -254,12 +255,12 @@ class Tester:
             predictions: torch.Tensor = round(output)
         return predictions.cpu().detach().numpy()
 
-    def _print_metrics(self, predictions: np.ndarray, path: str, labels: List[str]):
+    def _print_metrics(self, predictions: np.ndarray, labels: List[str]):
         print('\nConfusion matrix:')
         cm = metrics.confusion_matrix(self.labels, predictions)
         print(cm)
 
-        Analyzer.plot_confusion_matrix(cm, labels, path)
+        Analyzer.plot_confusion_matrix(cm, labels)
 
         print("\nAccuracy: {:.3f}%".format(metrics.accuracy_score(self.labels, predictions) * 100))
         print("F1-score: {:.3f}%".format(metrics.f1_score(
@@ -288,11 +289,11 @@ class Tester:
             metrics.recall_score(self.labels, predictions, average='binary' if not cfg.IS_MULTICLASS else 'weighted')
         )
 
-    def run(self, path: str, labels: List[str]):
+    def run(self, labels: List[str]):
         self._choose_model()
         self._load_checkpoint()
         predictions = self._predict()
-        self._print_metrics(predictions, path, labels)
+        self._print_metrics(predictions, labels)
         return self.get_metrics(predictions)
 
 
@@ -326,4 +327,4 @@ if __name__ == '__main__':
         datasets[2][:][1],
         preprocessor.tokenizer,
         training_data.shape[1]
-    ).run('figures/smsPennConfusionMatrix', ['Ham', 'Spam'])
+    ).run(['Ham', 'Spam'])
