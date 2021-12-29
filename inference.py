@@ -255,12 +255,12 @@ class Tester:
             predictions: torch.Tensor = round(output)
         return predictions.cpu().detach().numpy()
 
-    def _print_metrics(self, predictions: np.ndarray, labels: List[str]):
+    def _print_metrics(self, predictions: np.ndarray):
         print('\nConfusion matrix:')
         cm = metrics.confusion_matrix(self.labels, predictions)
         print(cm)
 
-        Analyzer.plot_confusion_matrix(cm, labels)
+        Analyzer.plot_confusion_matrix(cm, cfg.CM_LABELS)
 
         print("\nAccuracy: {:.3f}%".format(metrics.accuracy_score(self.labels, predictions) * 100))
         print("F1-score: {:.3f}%".format(metrics.f1_score(
@@ -289,11 +289,11 @@ class Tester:
             metrics.recall_score(self.labels, predictions, average='binary' if not cfg.IS_MULTICLASS else 'weighted')
         )
 
-    def run(self, labels: List[str]):
+    def run(self):
         self._choose_model()
         self._load_checkpoint()
         predictions = self._predict()
-        self._print_metrics(predictions, labels)
+        self._print_metrics(predictions)
         return self.get_metrics(predictions)
 
 

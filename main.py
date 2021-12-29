@@ -53,7 +53,7 @@ def analyze():
             )
 
 
-def main(path: str, data_labels: List[str]):
+def main():
     # Create and run data preprocessor
     preprocessor: Optional[DataPreprocessor] = None
 
@@ -100,7 +100,7 @@ def main(path: str, data_labels: List[str]):
             datasets[2][:][1],
             preprocessor.tokenizer,
             training_data.shape[1]
-        ).run(data_labels)
+        ).run()
 
         accuracy += results[0]
         f1 += results[1]
@@ -112,7 +112,7 @@ def main(path: str, data_labels: List[str]):
 
 if __name__ == '__main__':
     # analyze()
-    results = main('figures/newsConfusionMatrix.png', ['Ham', 'Spam'])
+    results = main()
     print("\nAverage accuracy: {:.3f}%".format(results[0] * 100))
     print("Average F1-score: {:.3f}%".format(results[1] * 100))
     print("Average precision: {:.3f}%".format(results[2] * 100))

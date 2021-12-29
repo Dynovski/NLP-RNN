@@ -17,11 +17,12 @@ class NetworkType(Enum):
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 CHECKPOINTS_FOLDER = 'checkpoints'
-CHECKPOINT_NAME = 'checkpoint_sms_lstm.pth'
-LOSS_PLOT_NAME = 'sms_lstm'
-CM_NAME = 'sms_lstm_cm'
+CHECKPOINT_NAME = 'checkpoint_tweet_lstm.pth'
+LOSS_PLOT_NAME = 'tweet_lstm'
+CM_NAME = 'tweet_lstm_cm'
+CM_LABELS = ['Real', 'Disaster']
 
-TASK_TYPE = TaskType.SMS
+TASK_TYPE = TaskType.TWEET
 NETWORK_TYPE = NetworkType.LSTM
 IS_MULTICLASS = False
 TRAIN_DATA_RATIO = 0.8
