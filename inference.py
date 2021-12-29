@@ -195,7 +195,7 @@ class Tester:
     ):
         self.embedding_weights: np.ndarray = embedding_weights
         self.data: torch.Tensor = data.to(cfg.DEVICE)
-        self.labels: torch.Tensor = labels.to(cfg.DEVICE)
+        self.labels: torch.Tensor = labels
         self.tokenizer: Tokenizer = tokenizer
         self.longest_sequence: int = longest_sequence
         self.is_multiclass: bool = cfg.IS_MULTICLASS
@@ -262,18 +262,30 @@ class Tester:
         Analyzer.plot_confusion_matrix(cm, labels, path)
 
         print("\nAccuracy: {:.3f}%".format(metrics.accuracy_score(self.labels, predictions) * 100))
-        print("F1-score: {:.3f}%".format(metrics.f1_score(self.labels, predictions) * 100))
-        print("Precision: {:.3f}%".format(metrics.precision_score(self.labels, predictions) * 100))
-        print("Recall: {:.3f}%".format(metrics.recall_score(self.labels, predictions) * 100))
+        print("F1-score: {:.3f}%".format(metrics.f1_score(
+            self.labels,
+            predictions,
+            average='binary' if not cfg.IS_MULTICLASS else 'weighted'
+        ) * 100))
+        print("Precision: {:.3f}%".format(metrics.precision_score(
+            self.labels,
+            predictions,
+            average='binary' if not cfg.IS_MULTICLASS else 'weighted'
+        ) * 100))
+        print("Recall: {:.3f}%".format(metrics.recall_score(
+            self.labels,
+            predictions,
+            average='binary' if not cfg.IS_MULTICLASS else 'weighted'
+        ) * 100))
         print("-" * 53)
         print(metrics.classification_report(self.labels, predictions))
 
     def get_metrics(self, predictions: np.ndarray):
         return (
             metrics.accuracy_score(self.labels, predictions),
-            metrics.f1_score(self.labels, predictions),
-            metrics.precision_score(self.labels, predictions),
-            metrics.recall_score(self.labels, predictions)
+            metrics.f1_score(self.labels, predictions, average='binary' if not cfg.IS_MULTICLASS else 'weighted'),
+            metrics.precision_score(self.labels, predictions, average='binary' if not cfg.IS_MULTICLASS else 'weighted'),
+            metrics.recall_score(self.labels, predictions, average='binary' if not cfg.IS_MULTICLASS else 'weighted')
         )
 
     def run(self, path: str, labels: List[str]):
@@ -285,51 +297,33 @@ class Tester:
 
 
 if __name__ == '__main__':
-    preprocessors: Optional[List[DataPreprocessor]] = None
+    preprocessor: Optional[DataPreprocessor] = None
 
     if cfg.TASK_TYPE == cfg.TaskType.SMS:
-        preprocessors: List[SmsDataPreprocessor] = [SmsDataPreprocessor()]
+        preprocessor: SmsDataPreprocessor = SmsDataPreprocessor()
     elif cfg.TASK_TYPE == cfg.TaskType.TWEET:
-        preprocessors: List[TweetDataPreprocessor] = [TweetDataPreprocessor()]
+        preprocessor: TweetDataPreprocessor = TweetDataPreprocessor()
     elif cfg.TASK_TYPE == cfg.TaskType.NEWS:
-        preprocessors: List[NewsDataPreprocessor] = [NewsDataPreprocessor('data/news_train.csv'),
-                                                     NewsDataPreprocessor('data/news_test.csv')]
+        preprocessor: NewsDataPreprocessor = NewsDataPreprocessor()
 
-    assert preprocessors is not None
+    preprocessor.run()
 
-    [preprocessor.run() for preprocessor in preprocessors]
+    training_data: np.ndarray = preprocessor.tokenize()
 
-    training_data: np.ndarray = preprocessors[0].tokenize()
-    test_data: Optional[np.ndarray] = None
-
-    if len(preprocessors) > 1:
-        test_data: np.ndarray = preprocessors[1].tokenize()
-
-    datasets = None
-
-    if len(preprocessors) == 1:
-        datasets = create_double_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
-    elif len(preprocessors) == 2:
-        train_and_val_datasets = create_single_split_dataset(
-            training_data,
-            preprocessors[0].target_labels,
-            cfg.TRAIN_DATA_RATIO
-        )
-        test_dataset = create_dataset(test_data, preprocessors[1].target_labels)
-        datasets = train_and_val_datasets + (test_dataset,)
+    datasets = create_double_split_dataset(training_data, preprocessor.target_labels, cfg.TRAIN_DATA_RATIO)
 
     train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
 
-    embedding_matrix: np.ndarray = preprocessors[0].make_embedding_matrix(
+    embedding_matrix: np.ndarray = preprocessor.make_embedding_matrix(
         'data/glove.6B.100d.txt',
         cfg.EMBEDDING_VECTOR_SIZE
     )
 
-    Trainer(embedding_matrix, train_dl, val_dl, preprocessors[0].tokenizer, training_data.shape[1]).run()
+    Trainer(embedding_matrix, train_dl, val_dl, preprocessor.tokenizer, training_data.shape[1]).run()
     Tester(
         embedding_matrix,
         datasets[2][:][0],
         datasets[2][:][1],
-        preprocessors[0].tokenizer,
+        preprocessor.tokenizer,
         training_data.shape[1]
     ).run('figures/smsPennConfusionMatrix', ['Ham', 'Spam'])

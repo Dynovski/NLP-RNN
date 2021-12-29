@@ -246,9 +246,9 @@ class TweetDataPreprocessor(DataPreprocessor):
 
 
 class NewsDataPreprocessor(DataPreprocessor):
-    def __init__(self, path: str):
+    def __init__(self):
         super(NewsDataPreprocessor, self).__init__(
-            path=path,
+            path='data/news_train.csv',
             encoding='latin-1',
             columns_to_drop=[],
             attribute_names=['class', 'title', 'text'],

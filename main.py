@@ -58,43 +58,28 @@ def analyze():
 
 def main(path: str, data_labels: List[str]):
     # Create and run data preprocessor
-    preprocessors: Optional[List[DataPreprocessor]] = None
+    preprocessor: Optional[DataPreprocessor] = None
 
     if cfg.TASK_TYPE == cfg.TaskType.SMS:
-        preprocessors: List[SmsDataPreprocessor] = [SmsDataPreprocessor()]
+        preprocessor: SmsDataPreprocessor = SmsDataPreprocessor()
     elif cfg.TASK_TYPE == cfg.TaskType.TWEET:
-        preprocessors: List[TweetDataPreprocessor] = [TweetDataPreprocessor()]
+        preprocessor: TweetDataPreprocessor = TweetDataPreprocessor()
     elif cfg.TASK_TYPE == cfg.TaskType.NEWS:
-        preprocessors: List[NewsDataPreprocessor] = [NewsDataPreprocessor('data/news_train.csv'),
-                                                     NewsDataPreprocessor('data/news_test.csv')]
+        preprocessor: NewsDataPreprocessor = NewsDataPreprocessor()
 
-    [preprocessor.run() for preprocessor in preprocessors]
+    preprocessor.run()
 
     # Get training and test data
-    training_data: np.ndarray = preprocessors[0].tokenize()
-    test_data: Optional[np.ndarray] = None
-
-    if len(preprocessors) > 1:
-        test_data: np.ndarray = preprocessors[1].tokenize()
+    training_data: np.ndarray = preprocessor.tokenize()
 
     # Create datasets
-    datasets = None
-    if len(preprocessors) == 1:
-        datasets = create_double_split_dataset(training_data, preprocessors[0].target_labels, cfg.TRAIN_DATA_RATIO)
-    elif len(preprocessors) == 2:
-        train_and_val_datasets = create_single_split_dataset(
-            training_data,
-            preprocessors[0].target_labels,
-            cfg.TRAIN_DATA_RATIO
-        )
-        test_dataset = create_dataset(test_data, preprocessors[1].target_labels)
-        datasets = train_and_val_datasets + (test_dataset,)
+    datasets = create_double_split_dataset(training_data, preprocessor.target_labels, cfg.TRAIN_DATA_RATIO)
 
     # Create data loaders
     train_dl, val_dl, test_dl = [create_data_loader(dataset) for dataset in datasets]
 
     # Create embedding matrices
-    embedding_matrix: np.ndarray = preprocessors[0].make_embedding_matrix(
+    embedding_matrix: np.ndarray = preprocessor.make_embedding_matrix(
         'data/glove.6B.100d.txt',
         cfg.EMBEDDING_VECTOR_SIZE
     )
@@ -104,30 +89,33 @@ def main(path: str, data_labels: List[str]):
     precision: float = 0.0
     recall: float = 0.0
     for _ in range(5):
-        Trainer(
-            embedding_matrix,
-            train_dl,
-            val_dl,
-            preprocessors[0].tokenizer,
-            training_data.shape[1]
-        ).run()
+        # Trainer(
+        #     embedding_matrix,
+        #     train_dl,
+        #     val_dl,
+        #     preprocessor.tokenizer,
+        #     training_data.shape[1]
+        # ).run()
+
         results = Tester(
             embedding_matrix,
             datasets[2][:][0],
             datasets[2][:][1],
-            preprocessors[0].tokenizer,
+            preprocessor.tokenizer,
             training_data.shape[1]
         ).run(path, data_labels)
+
         accuracy += results[0]
         f1 += results[1]
         precision += results[2]
         recall += results[3]
+
     return accuracy / 5, f1 / 5, precision / 5, recall / 5
 
 
 if __name__ == '__main__':
     # analyze()
-    results = main('figures/smsConfusionMatrix.png', ['Ham', 'Spam'])
+    results = main('figures/newsConfusionMatrix.png', ['World', 'Sports', 'Business', 'Sct/Tech'])
     print("\nAverage accuracy: {:.3f}%".format(results[0] * 100))
     print("Average F1-score: {:.3f}%".format(results[1] * 100))
     print("Average precision: {:.3f}%".format(results[2] * 100))
