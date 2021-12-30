@@ -131,6 +131,8 @@ class Trainer:
         self.model.train()
         train_acc: float = 0.0
         lowest_val_loss = np.Inf
+        best_val_acc: float = 0.0
+        lowest_train_loss = np.Inf
         for epoch in range(cfg.EPOCHS):
             loop = tqdm(self.train_dl, leave=True)
             train_num_correct = 0
@@ -164,7 +166,13 @@ class Trainer:
                     train_l.append(loss.item())
                     steps_l.append(index)
 
-                    if cfg.SAVE_CHECKPOINTS and val_loss <= lowest_val_loss:
+                    if (
+                            cfg.SAVE_CHECKPOINTS and
+                            (
+                                    val_loss <= lowest_val_loss or
+                                    (val_acc >= best_val_acc and loss.item() <= lowest_train_loss)
+                            )
+                    ):
                         save_checkpoint(
                             self.model,
                             self.optimizer,
@@ -172,6 +180,8 @@ class Trainer:
                             cfg.CHECKPOINTS_FOLDER
                         )
                         lowest_val_loss = val_loss
+                        best_val_acc = val_acc
+                        lowest_train_loss = loss.item()
 
                 predictions: Optional[torch.Tensor] = None
                 if self.is_multiclass:
@@ -327,4 +337,4 @@ if __name__ == '__main__':
         datasets[2][:][1],
         preprocessor.tokenizer,
         training_data.shape[1]
-    ).run(['Ham', 'Spam'])
+    ).run()
