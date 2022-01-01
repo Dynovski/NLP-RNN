@@ -17,7 +17,7 @@ from models.lstm_model import LSTMModel
 from models.lstm_pos_universal_model import LSTMPosUniversalModel
 from models.lstm_pos_penn_model import LSTMPosPennModel
 from preprocessing.data_preprocessing import DataPreprocessor, SmsDataPreprocessor, TweetDataPreprocessor, NewsDataPreprocessor
-from dataprocessing.datasets import create_double_split_dataset, create_dataset, create_single_split_dataset
+from dataprocessing.datasets import create_double_split_dataset
 from dataprocessing.dataloaders import create_data_loader
 from models.utils import save_checkpoint, load_checkpoint, load_model_state_dict
 from analyzing.analyzer import Analyzer
@@ -112,7 +112,8 @@ class Trainer:
             loss_values.append(loss.item())
             predictions: Optional[torch.Tensor] = None
             if self.is_multiclass:
-                predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(1)
+                dim: int = 1 if cfg.TASK_TYPE == cfg.TaskType.NEWS else 0
+                predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=dim).argmax(1)
             else:
                 predictions: torch.Tensor = round(output)
             num_correct += (predictions == labels).cpu().sum().item()
@@ -185,7 +186,8 @@ class Trainer:
 
                 predictions: Optional[torch.Tensor] = None
                 if self.is_multiclass:
-                    predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(1)
+                    dim: int = 1 if cfg.TASK_TYPE == cfg.TaskType.NEWS else 0
+                    predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=dim).argmax(1)
                 else:
                     predictions: torch.Tensor = round(output)
                 train_num_correct += (predictions == labels).cpu().sum().item()
@@ -260,7 +262,8 @@ class Tester:
             output = self.model(self.data)
         predictions: Optional[torch.Tensor] = None
         if self.is_multiclass:
-            predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(1)
+            dim: int = 1 if cfg.TASK_TYPE == cfg.TaskType.NEWS else 0
+            predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=dim).argmax(1)
         else:
             predictions: torch.Tensor = round(output)
         return predictions.cpu().detach().numpy()
