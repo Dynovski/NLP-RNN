@@ -262,8 +262,8 @@ class Tester:
             output = self.model(self.data)
         predictions: Optional[torch.Tensor] = None
         if self.is_multiclass:
-            dim: int = 1 if cfg.TASK_TYPE == cfg.TaskType.NEWS else 0
-            predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=dim).argmax(1)
+            dim: int = 2 if cfg.TASK_TYPE == cfg.TaskType.NEWS else 1
+            predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(dim)
         else:
             predictions: torch.Tensor = round(output)
         return predictions.cpu().detach().numpy()

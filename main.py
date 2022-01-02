@@ -85,14 +85,15 @@ def main():
     f1: float = 0.0
     precision: float = 0.0
     recall: float = 0.0
-    for _ in range(5):
-        Trainer(
-            embedding_matrix,
-            train_dl,
-            val_dl,
-            preprocessor.tokenizer,
-            training_data.shape[1]
-        ).run()
+    for i in range(5):
+        if i != 0:
+            Trainer(
+                embedding_matrix,
+                train_dl,
+                val_dl,
+                preprocessor.tokenizer,
+                training_data.shape[1]
+            ).run()
 
         results = Tester(
             embedding_matrix,
