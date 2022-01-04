@@ -46,7 +46,7 @@ class Trainer:
         if self.network_type == cfg.NetworkType.LSTM:
             self.model: LSTMModel = LSTMModel(
                 self.embedding_weights.shape[0],
-                cfg.OUTPUT_CLASSES,
+                cfg.OUTPUT_SIZE,
                 cfg.EMBEDDING_VECTOR_SIZE,
                 self.embedding_weights,
                 cfg.HIDDEN_STATE_SIZE,
@@ -55,7 +55,7 @@ class Trainer:
         elif self.network_type == cfg.NETWORK_TYPE.LSTM_UNIVERSAL:
             self.model: LSTMPosUniversalModel = LSTMPosUniversalModel(
                 self.embedding_weights.shape[0],
-                cfg.OUTPUT_CLASSES,
+                cfg.OUTPUT_SIZE,
                 cfg.EMBEDDING_VECTOR_SIZE,
                 self.embedding_weights,
                 cfg.HIDDEN_STATE_SIZE,
@@ -65,7 +65,7 @@ class Trainer:
         elif self.network_type == cfg.NETWORK_TYPE.LSTM_PENN:
             self.model: LSTMPosPennModel = LSTMPosPennModel(
                 self.embedding_weights.shape[0],
-                cfg.OUTPUT_CLASSES,
+                cfg.OUTPUT_SIZE,
                 cfg.EMBEDDING_VECTOR_SIZE,
                 self.embedding_weights,
                 cfg.HIDDEN_STATE_SIZE,
@@ -218,7 +218,7 @@ class Tester:
         if self.network_type == cfg.NetworkType.LSTM:
             self.model: LSTMModel = LSTMModel(
                 self.embedding_weights.shape[0],
-                cfg.OUTPUT_CLASSES,
+                cfg.OUTPUT_SIZE,
                 cfg.EMBEDDING_VECTOR_SIZE,
                 self.embedding_weights,
                 cfg.HIDDEN_STATE_SIZE,
@@ -227,7 +227,7 @@ class Tester:
         elif self.network_type == cfg.NETWORK_TYPE.LSTM_UNIVERSAL:
             self.model: LSTMPosUniversalModel = LSTMPosUniversalModel(
                 self.embedding_weights.shape[0],
-                cfg.OUTPUT_CLASSES,
+                cfg.OUTPUT_SIZE,
                 cfg.EMBEDDING_VECTOR_SIZE,
                 self.embedding_weights,
                 cfg.HIDDEN_STATE_SIZE,
@@ -237,7 +237,7 @@ class Tester:
         elif self.network_type == cfg.NETWORK_TYPE.LSTM_PENN:
             self.model: LSTMPosPennModel = LSTMPosPennModel(
                 self.embedding_weights.shape[0],
-                cfg.OUTPUT_CLASSES,
+                cfg.OUTPUT_SIZE,
                 cfg.EMBEDDING_VECTOR_SIZE,
                 self.embedding_weights,
                 cfg.HIDDEN_STATE_SIZE,
@@ -262,7 +262,7 @@ class Tester:
             output = self.model(self.data)
         predictions: Optional[torch.Tensor] = None
         if self.is_multiclass:
-            dim: int = 2 if cfg.TASK_TYPE == cfg.TaskType.NEWS else 1
+            dim: int = 2 if cfg.TASK_TYPE == cfg.TaskType.NEWS and cfg.NETWORK_TYPE != cfg.NetworkType.LSTM else 1
             predictions: torch.Tensor = torch.nn.functional.softmax(output, dim=0).argmax(dim)
         else:
             predictions: torch.Tensor = round(output)
