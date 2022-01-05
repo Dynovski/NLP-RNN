@@ -17,21 +17,21 @@ class NetworkType(Enum):
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 CHECKPOINTS_FOLDER = 'checkpoints'
-CHECKPOINT_NAME = 'checkpoint_news_lstm_penn.pth'
-LOSS_PLOT_NAME = 'news_lstm_penn'
-CM_NAME = 'news_lstm_penn_cm'
-CM_LABELS = ['World', 'Sports', 'Business', 'Technology']
+CHECKPOINT_NAME = 'checkpoint_sms_lstm.pth'
+LOSS_PLOT_NAME = 'sms_lstm'
+CM_NAME = 'sms_lstm_cm'
+CM_LABELS = ['Spam', 'Ham']
 
-TASK_TYPE = TaskType.NEWS
-NETWORK_TYPE = NetworkType.LSTM_PENN
-IS_MULTICLASS = True
-TRAIN_DATA_RATIO = 0.92
-BATCH_SIZE = 1
+TASK_TYPE = TaskType.SMS
+NETWORK_TYPE = NetworkType.LSTM
+IS_MULTICLASS = False
+TRAIN_DATA_RATIO = 0.8
+BATCH_SIZE = 32
 HIDDEN_STATE_SIZE = 256
 EMBEDDING_VECTOR_SIZE = 100
 NUM_RECURRENT_LAYERS = 1
-OUTPUT_SIZE = 4
-VALIDATE_EVERY = 10000
+OUTPUT_SIZE = 1
+VALIDATE_EVERY = 20
 CLIP_VALUE = 0.1
 
 EPOCHS = 3
