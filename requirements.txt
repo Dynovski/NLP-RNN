@@ -19,7 +19,7 @@ h5py==3.6.0
 idna==3.3
 importlib-metadata==4.8.2
 ipdb==0.13.9
-ipython==7.30.1
+ipython==7.31.1
 jedi==0.18.1
 joblib==1.1.0
 keras==2.7.0
